@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>900</width><height>600</height></rect>
+  </property>
+  <property name="windowTitle"><string>MICRO-Software · Comunicación Serial / UDP</string></property>
+  <property name="styleSheet">
+   <string notr="true">QMainWindow, QWidget { background: #101725; color: #e4ebf4; font-size: 13px; }
+QTabWidget::pane { border: 1px solid #35445b; border-radius: 5px; background: #182337; }
+QTabBar::tab { background: #1c2a40; color: #aebdd1; padding: 10px 22px; margin-right: 2px; }
+QTabBar::tab:selected { background: #236a79; color: white; }
+QLineEdit, QComboBox, QTextBrowser { background: #0e192b; border: 1px solid #40516a; border-radius: 4px; padding: 7px; color: #f2f6fb; }
+QPushButton { background: #176979; color: white; border: 0; border-radius: 4px; padding: 9px 16px; font-weight: bold; }
+QPushButton:hover { background: #23899b; }
+QPushButton:disabled { background: #3c485a; color: #a5afbc; }
+QLabel#label_statusMode { color: #70d8c3; font-weight: bold; }
+QLabel#label_title { font-size: 17px; font-weight: bold; }</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QVBoxLayout" name="verticalLayout_main">
+    <property name="leftMargin"><number>16</number></property>
+    <property name="topMargin"><number>16</number></property>
+    <property name="rightMargin"><number>16</number></property>
+    <property name="bottomMargin"><number>16</number></property>
+    <item>
+     <widget class="QTabWidget" name="tabWidget_wifi">
+      <property name="currentIndex"><number>0</number></property>
+      <widget class="QWidget" name="tab_CONN">
+       <attribute name="title"><string>Comunicación</string></attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_conn">
+        <property name="leftMargin"><number>22</number></property>
+        <property name="topMargin"><number>20</number></property>
+        <property name="rightMargin"><number>22</number></property>
+        <property name="bottomMargin"><number>20</number></property>
+        <property name="spacing"><number>16</number></property>
+        <item><widget class="QLabel" name="label_title"><property name="text"><string>Comunicación con el robot</string></property></widget></item>
+        <item>
+         <layout class="QFormLayout" name="formLayout_connection">
+          <property name="horizontalSpacing"><number>16</number></property>
+          <property name="verticalSpacing"><number>14</number></property>
+          <item row="0" column="0"><widget class="QLabel" name="label_protocol"><property name="text"><string>Protocolo</string></property></widget></item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="comboBox_protocol">
+            <item><property name="text"><string>Serial (USB)</string></property></item>
+            <item><property name="text"><string>Wi-Fi UDP</string></property></item>
+           </widget>
+          </item>
+          <item row="1" column="0"><widget class="QLabel" name="label_serialPort"><property name="text"><string>Puerto COM</string></property></widget></item>
+          <item row="1" column="1"><layout class="QHBoxLayout" name="horizontalLayout_serial">
+           <item><widget class="QComboBox" name="comboBox_serialPort"/></item>
+           <item><widget class="QPushButton" name="pushButton_refreshPorts"><property name="text"><string>ACTUALIZAR</string></property></widget></item>
+          </layout></item>
+          <item row="2" column="0"><widget class="QLabel" name="label_local_port"><property name="text"><string>Puerto local UDP</string></property></widget></item>
+          <item row="2" column="1"><widget class="QLineEdit" name="lineEdit_local_port"><property name="text"><string>30010</string></property></widget></item>
+          <item row="3" column="0"><widget class="QLabel" name="label_device_ip"><property name="text"><string>IP del dispositivo</string></property></widget></item>
+          <item row="3" column="1"><widget class="QLineEdit" name="lineEdit_device_ip"><property name="placeholderText"><string>Se detecta al recibir UDP</string></property></widget></item>
+          <item row="4" column="0"><widget class="QLabel" name="label_device_port"><property name="text"><string>Puerto del dispositivo</string></property></widget></item>
+          <item row="4" column="1"><widget class="QLineEdit" name="lineEdit_device_port"><property name="text"><string>30001</string></property></widget></item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_actions">
+          <item><widget class="QPushButton" name="pushButton_connect"><property name="text"><string>CONECTAR</string></property></widget></item>
+          <item><spacer name="horizontalSpacer_actions"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+         </layout>
+        </item>
+        <item><widget class="QLabel" name="label_statusMode"><property name="text"><string>Serial desconectado</string></property></widget></item>
+        <item><widget class="QLabel" name="label_commandTitle"><property name="text"><string>Comandos del protocolo UNER</string></property></widget></item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_command">
+          <item><widget class="QComboBox" name="comboBox_command"/></item>
+          <item><widget class="QPushButton" name="pushButton_sendCommand"><property name="text"><string>ENVIAR</string></property></widget></item>
+         </layout>
+        </item>
+        <item><widget class="QLabel" name="label_commandSupport"><property name="text"><string>Este firmware responde GETALIVE con ALIVE + ACK.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+        <item><spacer name="verticalSpacer_conn"><property name="orientation"><enum>Qt::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property></spacer></item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_LOGS">
+       <attribute name="title"><string>Registro de comunicación</string></attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_logs">
+        <property name="leftMargin"><number>20</number></property>
+        <property name="topMargin"><number>18</number></property>
+        <property name="rightMargin"><number>20</number></property>
+        <property name="bottomMargin"><number>18</number></property>
+        <item><widget class="QLabel" name="label_raw"><property name="text"><string>Datos recibidos y enviados</string></property></widget></item>
+        <item><widget class="QTextBrowser" name="textBrowserUnProcessed"/></item>
+        <item><widget class="QLabel" name="label_processed"><property name="text"><string>Tramas UNER y respuestas</string></property></widget></item>
+        <item><widget class="QTextBrowser" name="textBrowserProcessed"/></item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_logs">
+          <item><spacer name="horizontalSpacer_logs"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+          <item><widget class="QPushButton" name="pushButton_clearLogs"><property name="text"><string>LIMPIAR REGISTRO</string></property></widget></item>
+         </layout>
+        </item>
+       </layout>
+      </widget>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>

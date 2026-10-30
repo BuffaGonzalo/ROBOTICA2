@@ -1,0 +1,215 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ui version="4.0">
+ <class>internal_data</class>
+ <widget class="QDialog" name="internal_data">
+  <property name="styleSheet"><string notr="true">
+QMainWindow, QDialog, QWidget#centralwidget, QWidget#MAIN, QWidget#GRAF, QWidget#TELE, QStackedWidget {
+    background-color: #1e1e2d;
+    color: #e2e2e2;
+}
+
+QPushButton {
+    background-color: #27293d;
+    color: #00f2c3;
+    border: 1px solid #e14eca;
+    border-radius: 6px;
+    padding: 6px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: #e14eca;
+    color: white;
+}
+
+QLineEdit, QTextBrowser, QComboBox {
+    background-color: #1d1e2b;
+    color: #00f2c3;
+    border: 1px solid #27293d;
+    border-radius: 4px;
+    padding: 3px;
+}
+
+QSpinBox, QDoubleSpinBox {
+    background-color: #1d1e2b;
+    color: #00f2c3;
+    border: 1px solid #27293d;
+    border-radius: 4px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    padding-left: 4px;
+    padding-right: 22px;
+}
+
+QSpinBox:focus, QDoubleSpinBox:focus {
+    border: 1px solid #00f2c3;
+}
+
+QSpinBox::up-button, QDoubleSpinBox::up-button {
+    subcontrol-origin: border;
+    subcontrol-position: top right;
+    width: 18px;
+    background-color: #27293d;
+    border-left: 1px solid #1d1e2b;
+    border-bottom: 1px solid #1d1e2b;
+    border-top-right-radius: 4px;
+}
+
+QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover {
+    background-color: #e14eca;
+}
+
+QSpinBox::up-button:pressed, QDoubleSpinBox::up-button:pressed {
+    background-color: #00f2c3;
+}
+
+QSpinBox::up-arrow, QDoubleSpinBox::up-arrow {
+    image: url(:/resources/icons/arrow_up.png);
+    width: 9px;
+    height: 9px;
+    subcontrol-origin: margin;
+    subcontrol-position: center;
+}
+
+QSpinBox::up-arrow:hover, QDoubleSpinBox::up-arrow:hover {
+    image: url(:/resources/icons/arrow_up_hover.png);
+}
+
+QSpinBox::up-arrow:pressed, QDoubleSpinBox::up-arrow:pressed {
+    image: url(:/resources/icons/arrow_up_pressed.png);
+}
+
+QSpinBox::up-arrow:disabled, QSpinBox::up-arrow:off,
+QDoubleSpinBox::up-arrow:disabled, QDoubleSpinBox::up-arrow:off {
+    image: url(:/resources/icons/arrow_up_disabled.png);
+}
+
+QSpinBox::down-button, QDoubleSpinBox::down-button {
+    subcontrol-origin: border;
+    subcontrol-position: bottom right;
+    width: 18px;
+    background-color: #27293d;
+    border-left: 1px solid #1d1e2b;
+    border-bottom-right-radius: 4px;
+}
+
+QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
+    background-color: #e14eca;
+}
+
+QSpinBox::down-button:pressed, QDoubleSpinBox::down-button:pressed {
+    background-color: #00f2c3;
+}
+
+QSpinBox::down-arrow, QDoubleSpinBox::down-arrow {
+    image: url(:/resources/icons/arrow_down.png);
+    width: 9px;
+    height: 9px;
+    subcontrol-origin: margin;
+    subcontrol-position: center;
+}
+
+QSpinBox::down-arrow:hover, QDoubleSpinBox::down-arrow:hover {
+    image: url(:/resources/icons/arrow_down_hover.png);
+}
+
+QSpinBox::down-arrow:pressed, QDoubleSpinBox::down-arrow:pressed {
+    image: url(:/resources/icons/arrow_down_pressed.png);
+}
+
+QSpinBox::down-arrow:disabled, QSpinBox::down-arrow:off,
+QDoubleSpinBox::down-arrow:disabled, QDoubleSpinBox::down-arrow:off {
+    image: url(:/resources/icons/arrow_down_disabled.png);
+}
+
+QLabel {
+    color: #e2e2e2;
+    font-weight: bold;
+}
+
+QGroupBox {
+    border: 1px solid #27293d;
+    margin-top: 10px;
+    color: #e14eca;
+    font-weight: bold;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 3px;
+}
+
+QLCDNumber {
+    color: #00f2c3;
+    background-color: #1d1e2b;
+    border: 1px solid #27293d;
+}
+
+QCheckBox {
+    color: #e2e2e2;
+}
+</string></property><property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>788</width>
+    <height>656</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <widget class="QDialogButtonBox" name="buttonBox">
+   <property name="geometry">
+    <rect>
+     <x>410</x>
+     <y>600</y>
+     <width>341</width>
+     <height>32</height>
+    </rect>
+   </property>
+   <property name="orientation">
+    <enum>Qt::Orientation::Horizontal</enum>
+   </property>
+   <property name="standardButtons">
+    <set>QDialogButtonBox::StandardButton::Cancel|QDialogButtonBox::StandardButton::Ok</set>
+   </property>
+  </widget>
+ </widget>
+ <resources>
+  <include location="resources.qrc"/>
+ </resources>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>internal_data</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>internal_data</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

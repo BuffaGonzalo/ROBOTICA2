@@ -1,0 +1,660 @@
+4981:            </item>
+4982:           </layout>
+4983:          </widget>
+4984:         </item>
+4985:         <item>
+4986:          <layout class="QHBoxLayout" name="horizontalLayout_gotoContent" stretch="5,6">
+4987:           <property name="spacing">
+4988:            <number>16</number>
+4989:           </property>
+4990:           <item>
+4991:            <widget class="QFrame" name="frame_gotoKeypad">
+4992:             <property name="styleSheet">
+4993:              <string notr="true">#frame_gotoKeypad { background-color: #121422; border: 1px solid #23273e; border-radius: 12px; }</string>
+4994:             </property>
+4995:             <layout class="QVBoxLayout" name="verticalLayout_keypadBox">
+4996:              <property name="spacing">
+4997:               <number>10</number>
+4998:              </property>
+4999:              <property name="leftMargin">
+5000:               <number>16</number>
+5001:              </property>
+5002:              <property name="topMargin">
+5003:               <number>16</number>
+5004:              </property>
+5005:              <property name="rightMargin">
+5006:               <number>16</number>
+5007:              </property>
+5008:              <property name="bottomMargin">
+5009:               <number>16</number>
+5010:              </property>
+5011:              <item>
+5012:               <widget class="QLabel" name="label_keypadTitle">
+5013:                <property name="font">
+5014:                 <font>
+5015:                  <pointsize>10</pointsize>
+5016:                  <bold>true</bold>
+5017:                 </font>
+5018:                </property>
+5019:                <property name="styleSheet">
+5020:                 <string notr="true">color: #8c93a8; letter-spacing: 1px;</string>
+5021:                </property>
+5022:                <property name="text">
+5023:                 <string>CRUCETA DE MOVIMIENTO (TECLADO / MOUSE)</string>
+5024:                </property>
+5025:                <property name="alignment">
+5026:                 <set>Qt::AlignmentFlag::AlignCenter</set>
+5027:                </property>
+5028:               </widget>
+5029:              </item>
+5030:              <item>
+5031:               <spacer name="spacer_keypadTop">
+5032:                <property name="orientation">
+5033:                 <enum>Qt::Orientation::Vertical</enum>
+5034:                </property>
+5035:                <property name="sizeHint" stdset="0">
+5036:                 <size>
+5037:                  <width>20</width>
+5038:                  <height>10</height>
+5039:                 </size>
+5040:                </property>
+5041:               </spacer>
+5042:              </item>
+5043:              <item>
+5044:               <layout class="QGridLayout" name="gridLayout_arrowKeys">
+5045:                <property name="spacing">
+5046:                 <number>10</number>
+5047:                </property>
+5048:                <item row="0" column="1">
+5049:                 <widget class="QPushButton" name="btn_goto_up">
+5050:                  <property name="focusPolicy">
+5051:                   <enum>Qt::FocusPolicy::NoFocus</enum>
+5052:                  </property>
+5053:                  <property name="minimumSize">
+5054:                   <size>
+5055:                    <width>90</width>
+5056:                    <height>75</height>
+5057:                   </size>
+5058:                  </property>
+5059:                  <property name="text">
+5060:                   <string>▲&#10;+ Setpoint</string>
+5061:                  </property>
+5062:                  <property name="toolTip">
+5063:                   <string>Flecha Arriba: Aumentar inclinación / avance</string>
+5064:                  </property>
+5065:                 </widget>
+5066:                </item>
+5067:                <item row="1" column="0">
+5068:                 <widget class="QPushButton" name="btn_goto_left">
+5069:                  <property name="focusPolicy">
+5070:                   <enum>Qt::FocusPolicy::NoFocus</enum>
+5071:                  </property>
+5072:                  <property name="minimumSize">
+5073:                   <size>
+5074:                    <width>90</width>
+5075:                    <height>75</height>
+5076:                   </size>
+5077:                  </property>
+5078:                  <property name="text">
+5079:                   <string>◄&#10;Girar Izq</string>
+5080:                  </property>
+5081:                  <property name="toolTip">
+5082:                   <string>Flecha Izquierda: Rotar sobre propio eje a la izquierda</string>
+5083:                  </property>
+5084:                 </widget>
+5085:                </item>
+5086:                <item row="1" column="1">
+5087:                 <widget class="QPushButton" name="btn_goto_down">
+5088:                  <property name="focusPolicy">
+5089:                   <enum>Qt::FocusPolicy::NoFocus</enum>
+5090:                  </property>
+5091:                  <property name="minimumSize">
+5092:                   <size>
+5093:                    <width>90</width>
+5094:                    <height>75</height>
+5095:                   </size>
+5096:                  </property>
+5097:                  <property name="text">
+5098:                   <string>▼&#10;- Setpoint</string>
+5099:                  </property>
+5100:                  <property name="toolTip">
+5101:                   <string>Flecha Abajo: Reducir inclinación</string>
+5102:                  </property>
+5103:                 </widget>
+5104:                </item>
+5105:                <item row="1" column="2">
+5106:                 <widget class="QPushButton" name="btn_goto_right">
+5107:                  <property name="focusPolicy">
+5108:                   <enum>Qt::FocusPolicy::NoFocus</enum>
+5109:                  </property>
+5110:                  <property name="minimumSize">
+5111:                   <size>
+5112:                    <width>90</width>
+5113:                    <height>75</height>
+5114:                   </size>
+5115:                  </property>
+5116:                  <property name="text">
+5117:                   <string>►&#10;Girar Der</string>
+5118:                  </property>
+5119:                  <property name="toolTip">
+5120:                   <string>Flecha Derecha: Rotar sobre propio eje a la derecha</string>
+5121:                  </property>
+5122:                 </widget>
+5123:                </item>
+5124:                <item row="2" column="1">
+5125:                 <widget class="QPushButton" name="btn_goto_center">
+5126:                  <property name="focusPolicy">
+5127:                   <enum>Qt::FocusPolicy::NoFocus</enum>
+5128:                  </property>
+5129:                  <property name="minimumSize">
+5130:                   <size>
+5131:                    <width>90</width>
+5132:                    <height>38</height>
+5133:                   </size>
+5134:                  </property>
+5135:                  <property name="styleSheet">
+5136:                   <string notr="true">font-size: 8pt; color: #00bcd4; border-color: #00bcd4;</string>
+5137:                  </property>
+5138:                  <property name="text">
+5139:                   <string>⟲ 0.0°</string>
+5140:                  </property>
+5141:                  <property name="toolTip">
+5142:                   <string>Centrar setpoint a 0.0°</string>
+5143:                  </property>
+5144:                 </widget>
+5145:                </item>
+5146:               </layout>
+5147:              </item>
+5148:              <item>
+5149:               <spacer name="spacer_keypadBottom">
+5150:                <property name="orientation">
+5151:                 <enum>Qt::Orientation::Vertical</enum>
+5152:                </property>
+5153:                <property name="sizeHint" stdset="0">
+5154:                 <size>
+5155:                  <width>20</width>
+5156:                  <height>10</height>
+5157:                 </size>
+5158:                </property>
+5159:               </spacer>
+5160:              </item>
+5161:              <item>
+5162:               <widget class="QFrame" name="frame_gotoLegend">
+5163:                <property name="styleSheet">
+5164:                 <string notr="true">#frame_gotoLegend { background-color: #171b2d; border: 1px dashed #2f3758; border-radius: 8px; padding: 6px; }</string>
+5165:                </property>
+5166:                <layout class="QVBoxLayout" name="verticalLayout_gotoLegend">
+5167:                 <property name="spacing">
+5168:                  <number>3</number>
+5169:                 </property>
+5170:                 <property name="leftMargin">
+5171:                  <number>8</number>
+5172:                 </property>
+5173:                 <property name="topMargin">
+5174:                  <number>6</number>
+5175:                 </property>
+5176:                 <property name="rightMargin">
+5177:                  <number>8</number>
+5178:                 </property>
+5179:                 <property name="bottomMargin">
+5180:                  <number>6</number>
+5181:                 </property>
+5182:                 <item>
+5183:                  <widget class="QLabel" name="label_legend1">
+5184:                   <property name="styleSheet">
+5185:                    <string notr="true">color: #7e87a2; font-size: 8pt;</string>
+5186:                   </property>
+5187:                   <property name="text">
+5188:                    <string>&lt;b&gt;Atajos activos en esta pestaña:&lt;/b&gt;</string>
+5189:                   </property>
+5190:                  </widget>
+5191:                 </item>
+5192:                 <item>
+5193:                  <widget class="QLabel" name="label_legend2">
+5194:                   <property name="styleSheet">
+5195:                    <string notr="true">color: #a4adc7; font-size: 8pt;</string>
+5196:                   </property>
+5197:                   <property name="text">
+5198:                    <string>• &lt;b&gt;↑ Arriba:&lt;/b&gt; Suma setpoint progresivo</string>
+5199:                   </property>
+5200:                  </widget>
+5201:                 </item>
+5202:                 <item>
+5203:                  <widget class="QLabel" name="label_legend3">
+5204:                   <property name="styleSheet">
+5205:                    <string notr="true">color: #a4adc7; font-size: 8pt;</string>
+5206:                   </property>
+5207:                   <property name="text">
+5208:                    <string>• &lt;b&gt;↓ Abajo:&lt;/b&gt; Baja setpoint progresivo</string>
+5209:                   </property>
+5210:                  </widget>
+5211:                 </item>
+5212:                 <item>
+5213:                  <widget class="QLabel" name="label_legend4">
+5214:                   <property name="styleSheet">
+5215:                    <string notr="true">color: #a4adc7; font-size: 8pt;</string>
+5216:                   </property>
+5217:                   <property name="text">
+5218:                    <string>• &lt;b&gt;← / →:&lt;/b&gt; Rota sobre su propio eje (mantiene balance)</string>
+5219:                   </property>
+5220:                  </widget>
+5221:                 </item>
+5222:                 <item>
+5223:                  <widget class="QLabel" name="label_legend5">
+5224:                   <property name="styleSheet">
+5225:                    <string notr="true">color: #00f2c3; font-size: 8pt;</string>
+5226:                   </property>
+5227:                   <property name="text">
+5228:                    <string>• &lt;b&gt;R:&lt;/b&gt; Resetear setpoint a 0.0°</string>
+5229:                   </property>
+5230:                  </widget>
+5231:                 </item>
+5232:                </layout>
+5233:               </widget>
+5234:              </item>
+5235:             </layout>
+5236:            </widget>
+5237:           </item>
+5238:           <item>
+5239:            <layout class="QVBoxLayout" name="verticalLayout_gotoRight">
+5240:             <property name="spacing">
+5241:              <number>12</number>
+5242:             </property>
+5243:             <item>
+5244:              <widget class="QFrame" name="frame_gotoTelemetry">
+5245:               <property name="styleSheet">
+5246:                <string notr="true">#frame_gotoTelemetry { background-color: #121422; border: 1px solid #23273e; border-radius: 12px; }</string>
+5247:               </property>
+5248:               <layout class="QVBoxLayout" name="verticalLayout_teleBox">
+5249:                <property name="spacing">
+5250:                 <number>10</number>
+5251:                </property>
+5252:                <property name="leftMargin">
+5253:                 <number>16</number>
+5254:                </property>
+5255:                <property name="topMargin">
+5256:                 <number>14</number>
+5257:                </property>
+5258:                <property name="rightMargin">
+5259:                 <number>16</number>
+5260:                </property>
+5261:                <property name="bottomMargin">
+5262:                 <number>14</number>
+5263:                </property>
+5264:                <item>
+5265:                 <widget class="QLabel" name="label_teleTitle">
+5266:                  <property name="font">
+5267:                   <font>
+5268:                    <pointsize>10</pointsize>
+5269:                    <bold>true</bold>
+5270:                   </font>
+5271:                  </property>
+5272:                  <property name="styleSheet">
+5273:                   <string notr="true">color: #8c93a8; letter-spacing: 1px;</string>
+5274:                  </property>
+5275:                  <property name="text">
+5276:                   <string>TELEMETRÍA DE ÁNGULOS EN TIEMPO REAL</string>
+5277:                  </property>
+5278:                 </widget>
+5279:                </item>
+5280:                <item>
+5281:                 <layout class="QHBoxLayout" name="horizontalLayout_anglesDisplay">
+5282:                  <property name="spacing">
+5283:                   <number>12</number>
+5284:                  </property>
+5285:                  <item>
+5286:                   <widget class="QFrame" name="box_gotoSetpoint">
+5287:                    <property name="styleSheet">
+5288:                     <string notr="true">#box_gotoSetpoint { background-color: #171b2d; border: 1.5px solid #00bcd4; border-radius: 10px; padding: 8px; }</string>
+5289:                    </property>
+5290:                    <layout class="QVBoxLayout" name="verticalLayout_spDisplay">
+5291:                     <property name="spacing">
+5292:                      <number>4</number>
+5293:                     </property>
+5294:                     <item>
+5295:                      <widget class="QLabel" name="label_spTitle">
+5296:                       <property name="styleSheet">
+5297:                        <string notr="true">color: #00bcd4; font-size: 8pt; font-weight: bold;</string>
+5298:                       </property>
+5299:                       <property name="text">
+5300:                        <string>ÁNGULO COLOCADO (SETPOINT)</string>
+5301:                       </property>
+5302:                       <property name="alignment">
+5303:                        <set>Qt::AlignmentFlag::AlignCenter</set>
+5304:                       </property>
+5305:                      </widget>
+5306:                     </item>
+5307:                     <item>
+5308:                      <widget class="QLabel" name="lbl_goto_setpoint_deg">
+5309:                       <property name="font">
+5310:                        <font>
+5311:                         <pointsize>18</pointsize>
+5312:                         <bold>true</bold>
+5313:                        </font>
+5314:                       </property>
+5315:                       <property name="styleSheet">
+5316:                        <string notr="true">color: #00f2c3;</string>
+5317:                       </property>
+5318:                       <property name="text">
+5319:                        <string>-10.00°</string>
+5320:                       </property>
+5321:                       <property name="alignment">
+5322:                        <set>Qt::AlignmentFlag::AlignCenter</set>
+5323:                       </property>
+5324:                      </widget>
+5325:                     </item>
+5326:                     <item>
+5327:                      <widget class="QLabel" name="lbl_goto_setpoint_raw">
+5328:                       <property name="styleSheet">
+5329:                        <string notr="true">color: #7b85a3; font-size: 8pt;</string>
+5330:                       </property>
+5331:                       <property name="text">
+5332:                        <string>Valor crudo: -1000</string>
+5333:                       </property>
+5334:                       <property name="alignment">
+5335:                        <set>Qt::AlignmentFlag::AlignCenter</set>
+5336:                       </property>
+5337:                      </widget>
+5338:                     </item>
+5339:                    </layout>
+5340:                   </widget>
+5341:                  </item>
+5342:                  <item>
+5343:                   <widget class="QFrame" name="box_gotoActual">
+5344:                    <property name="styleSheet">
+5345:                     <string notr="true">#box_gotoActual { background-color: #171b2d; border: 1.5px solid #3d7bfd; border-radius: 10px; padding: 8px; }</string>
+5346:                    </property>
+5347:                    <layout class="QVBoxLayout" name="verticalLayout_actDisplay">
+5348:                     <property name="spacing">
+5349:                      <number>4</number>
+5350:                     </property>
+5351:                     <item>
+5352:                      <widget class="QLabel" name="label_actTitle">
+5353:                       <property name="styleSheet">
+5354:                        <string notr="true">color: #79a6ff; font-size: 8pt; font-weight: bold;</string>
+5355:                       </property>
+5356:                       <property name="text">
+5357:                        <string>ÁNGULO ACTUAL DEL AUTITO</string>
+5358:                       </property>
+5359:                       <property name="alignment">
+5360:                        <set>Qt::AlignmentFlag::AlignCenter</set>
+5361:                       </property>
+5362:                      </widget>
+5363:                     </item>
+5364:                     <item>
+5365:                      <widget class="QLabel" name="lbl_goto_current_deg">
+5366:                       <property name="font">
+5367:                        <font>
+5368:                         <pointsize>18</pointsize>
+5369:                         <bold>true</bold>
+5370:                        </font>
+5371:                       </property>
+5372:                       <property name="styleSheet">
+5373:                        <string notr="true">color: #ffffff;</string>
+5374:                       </property>
+5375:                       <property name="text">
+5376:                        <string>0.00°</string>
+5377:                       </property>
+5378:                       <property name="alignment">
+5379:                        <set>Qt::AlignmentFlag::AlignCenter</set>
+5380:                       </property>
+5381:                      </widget>
+5382:                     </item>
+5383:                     <item>
+5384:                      <widget class="QLabel" name="lbl_goto_error">
+5385:                       <property name="styleSheet">
+5386:                        <string notr="true">color: #ffb74d; font-size: 8pt;</string>
+5387:                       </property>
+5388:                       <property name="text">
+5389:                        <string>Error: 0.00°</string>
+5390:                       </property>
+5391:                       <property name="alignment">
+5392:                        <set>Qt::AlignmentFlag::AlignCenter</set>
+5393:                       </property>
+5394:                      </widget>
+5395:                     </item>
+5396:                    </layout>
+5397:                   </widget>
+5398:                  </item>
+5399:                  <item>
+5400:                   <widget class="QFrame" name="box_gotoYaw">
+5401:                    <property name="styleSheet">
+5402:                     <string notr="true">#box_gotoYaw { background-color: #171b2d; border: 1.5px solid #bd00ff; border-radius: 10px; padding: 8px; }</string>
+5403:                    </property>
+5404:                    <layout class="QVBoxLayout" name="verticalLayout_yawDisplay">
+5405:                     <property name="spacing">
+5406:                      <number>4</number>
+5407:                     </property>
+5408:                     <item>
+5409:                      <widget class="QLabel" name="label_yawTitle">
+5410:                       <property name="styleSheet">
+5411:                        <string notr="true">color: #bd00ff; font-size: 8pt; font-weight: bold;</string>
+5412:                       </property>
+5413:                       <property name="text">
+5414:                        <string>YAW (ROTACIÓN RELATIVA)</string>
+5415:                       </property>
+5416:                       <property name="alignment">
+5417:                        <set>Qt::AlignmentFlag::AlignCenter</set>
+5418:                       </property>
+5419:                      </widget>
+5420:                     </item>
+5421:                     <item>
+5422:                      <widget class="QLabel" name="lbl_goto_yaw_deg">
+5423:                       <property name="font">
+5424:                        <font>
+5425:                         <pointsize>18</pointsize>
+5426:                         <bold>true</bold>
+5427:                        </font>
+5428:                       </property>
+5429:                       <property name="styleSheet">
+5430:                        <string notr="true">color: #e040fb;</string>
+5431:                       </property>
+5432:                       <property name="text">
+5433:                        <string>0.00°</string>
+5434:                       </property>
+5435:                       <property name="alignment">
+5436:                        <set>Qt::AlignmentFlag::AlignCenter</set>
+5437:                       </property>
+5438:                      </widget>
+5439:                     </item>
+5440:                     <item>
+5441:                      <widget class="QLabel" name="lbl_goto_yaw_desc">
+5442:                       <property name="styleSheet">
+5443:                        <string notr="true">color: #7b85a3; font-size: 8pt;</string>
+5444:                       </property>
+5445:                       <property name="text">
+5446:                        <string>Ref. inicio Joystick (gz)</string>
+5447:                       </property>
+5448:                       <property name="alignment">
+5449:                        <set>Qt::AlignmentFlag::AlignCenter</set>
+5450:                       </property>
+5451:                      </widget>
+5452:                     </item>
+5453:                     <item>
+5454:                      <widget class="QPushButton" name="btn_goto_reset_yaw">
+5455:                       <property name="focusPolicy">
+5456:                        <enum>Qt::FocusPolicy::NoFocus</enum>
+5457:                       </property>
+5458:                       <property name="minimumSize">
+5459:                        <size>
+5460:                         <width>0</width>
+5461:                         <height>22</height>
+5462:                        </size>
+5463:                       </property>
+5464:                       <property name="styleSheet">
+5465:                        <string notr="true">font-size: 7.5pt; color: #e040fb; border: 1px solid #bd00ff; border-radius: 4px; padding: 2px;</string>
+5466:                       </property>
+5467:                       <property name="text">
+5468:                        <string>⟲ Reset Yaw</string>
+5469:                       </property>
+5470:                       <property name="toolTip">
+5471:                        <string>Poner a 0.0° la referencia del ángulo de Yaw</string>
+5472:                       </property>
+5473:                      </widget>
+5474:                     </item>
+5475:                    </layout>
+5476:                   </widget>
+5477:                  </item>
+5478:                 </layout>
+5479:                </item>
+5480:               </layout>
+5481:              </widget>
+5482:             </item>
+5483:             <item>
+5484:              <widget class="QFrame" name="frame_gotoSettings">
+5485:               <property name="styleSheet">
+5486:                <string notr="true">#frame_gotoSettings { background-color: #121422; border: 1px solid #23273e; border-radius: 12px; }</string>
+5487:               </property>
+5488:               <layout class="QVBoxLayout" name="verticalLayout_settingsBox">
+5489:                <property name="spacing">
+5490:                 <number>12</number>
+5491:                </property>
+5492:                <property name="leftMargin">
+5493:                 <number>16</number>
+5494:                </property>
+5495:                <property name="topMargin">
+5496:                 <number>14</number>
+5497:                </property>
+5498:                <property name="rightMargin">
+5499:                 <number>16</number>
+5500:                </property>
+5501:                <property name="bottomMargin">
+5502:                 <number>14</number>
+5503:                </property>
+5504:                <item>
+5505:                 <widget class="QLabel" name="label_settingsTitle">
+5506:                  <property name="font">
+5507:                   <font>
+5508:                    <pointsize>10</pointsize>
+5509:                    <bold>true</bold>
+5510:                   </font>
+5511:                  </property>
+5512:                  <property name="styleSheet">
+5513:                   <string notr="true">color: #8c93a8; letter-spacing: 1px;</string>
+5514:                  </property>
+5515:                  <property name="text">
+5516:                   <string>AJUSTES DE SENSIBILIDAD Y GIRO</string>
+5517:                  </property>
+5518:                 </widget>
+5519:                </item>
+5520:                <item>
+5521:                 <layout class="QGridLayout" name="gridLayout_settingsInputs">
+5522:                  <property name="spacing">
+5523:                   <number>10</number>
+5524:                  </property>
+5525:                  <item row="0" column="0">
+5526:                   <widget class="QLabel" name="label_stepDesc">
+5527:                    <property name="text">
+5528:                     <string>Paso de Setpoint por pulsación:</string>
+5529:                    </property>
+5530:                   </widget>
+5531:                  </item>
+5532:                  <item row="0" column="1">
+5533:                   <widget class="QDoubleSpinBox" name="spinBox_gotoStep">
+5534:                    <property name="focusPolicy">
+5535:                     <enum>Qt::FocusPolicy::ClickFocus</enum>
+5536:                    </property>
+5537:                    <property name="decimals">
+5538:                     <number>2</number>
+5539:                    </property>
+5540:                    <property name="minimum">
+5541:                     <double>0.050000000000000</double>
+5542:                    </property>
+5543:                    <property name="maximum">
+5544:                     <double>2.000000000000000</double>
+5545:                    </property>
+5546:                    <property name="singleStep">
+5547:                     <double>0.050000000000000</double>
+5548:                    </property>
+5549:                    <property name="value">
+5550:                     <double>0.250000000000000</double>
+5551:                    </property>
+5552:                    <property name="suffix">
+5553:                     <string>°</string>
+5554:                    </property>
+5555:                   </widget>
+5556:                  </item>
+5557:                  <item row="1" column="0">
+5558:                   <widget class="QLabel" name="label_turnDesc">
+5559:                    <property name="text">
+5560:                     <string>Velocidad de Giro (PWM):</string>
+5561:                    </property>
+5562:                   </widget>
+5563:                  </item>
+5564:                  <item row="1" column="1">
+5565:                   <widget class="QSpinBox" name="spinBox_gotoTurnIntensity">
+5566:                    <property name="focusPolicy">
+5567:                     <enum>Qt::FocusPolicy::ClickFocus</enum>
+5568:                    </property>
+5569:                    <property name="minimum">
+5570:                     <number>100</number>
+5571:                    </property>
+5572:                    <property name="maximum">
+5573:                     <number>600</number>
+5574:                    </property>
+5575:                    <property name="singleStep">
+5576:                     <number>25</number>
+5577:                    </property>
+5578:                    <property name="value">
+5579:                     <number>250</number>
+5580:                    </property>
+5581:                   </widget>
+5582:                  </item>
+5583:                  <item row="2" column="0">
+5584:                   <widget class="QLabel" name="label_turnDurationDesc">
+5585:                    <property name="text">
+5586:                     <string>Cantidad de Giro por pulsación:</string>
+5587:                    </property>
+5588:                   </widget>
+5589:                  </item>
+5590:                  <item row="2" column="1">
+5591:                   <widget class="QSpinBox" name="spinBox_gotoTurnDuration">
+5592:                    <property name="focusPolicy">
+5593:                     <enum>Qt::FocusPolicy::ClickFocus</enum>
+5594:                    </property>
+5595:                    <property name="minimum">
+5596:                     <number>50</number>
+5597:                    </property>
+5598:                    <property name="maximum">
+5599:                     <number>2000</number>
+5600:                    </property>
+5601:                    <property name="singleStep">
+5602:                     <number>25</number>
+5603:                    </property>
+5604:                    <property name="value">
+5605:                     <number>200</number>
+5606:                    </property>
+5607:                    <property name="suffix">
+5608:                     <string> ms</string>
+5609:                    </property>
+5610:                   </widget>
+5611:                  </item>
+5612:                 </layout>
+5613:                </item>
+5614:               </layout>
+5615:              </widget>
+5616:             </item>
+5617:             <item>
+5618:              <spacer name="spacer_gotoRightBottom">
+5619:               <property name="orientation">
+5620:                <enum>Qt::Orientation::Vertical</enum>
+5621:               </property>
+5622:               <property name="sizeHint" stdset="0">
+5623:                <size>
+5624:                 <width>20</width>
+5625:                 <height>20</height>
+5626:                </size>
+5627:               </property>
+5628:              </spacer>
+5629:             </item>
+5630:            </layout>
+5631:           </item>
+5632:          </layout>
+5633:         </item>
+5634:        </layout>
+5635:       </widget>
+5636: <widget class="QWidget" name="DEBUG_PAGE">
+5637:        <layout class="QVBoxLayout" name="verticalLayout_debug">
+5638:         <property name="spacing">
+5639:          <number>6</number>
+5640:         </property>
