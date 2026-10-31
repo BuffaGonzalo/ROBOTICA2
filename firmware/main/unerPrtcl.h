@@ -61,6 +61,7 @@ typedef struct {
 	uint8_t mask;       /*!< Máscara binaria para avance circular sin operación módulo ($2^N - 1$) */
 	uint8_t chk;        /*!< Acumulador de Checksum por operación XOR para la trama activa */
 	uint8_t nBytes;     /*!< Contador de longitud de bytes recibidos o pendientes de despacho */
+    uint8_t frameLength; /*!< Longitud recibida: comando, datos y checksum. */
 	uint8_t header;     /*!< Estado actual en la máquina de estados de sincronización de cabecera (_eDecode) */
 } _sComm;
 

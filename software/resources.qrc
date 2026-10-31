@@ -1,5 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>resources/icons/app_icon.png</file>
+        <file>resources/icons/spin_plus.svg</file>
+        <file>resources/icons/spin_minus.svg</file>
     </qresource>
 </RCC>

@@ -32,6 +32,7 @@ void unerPrtcl_Init(_sComm *Rx, _sComm *Tx, volatile uint8_t *buffRx, volatile u
     Rx->indexW = 0;
     Rx->indexData = 0;
     Rx->nBytes = 0;
+    Rx->frameLength = 0;
     Rx->header = HEADER_U;
     Rx->mask = RXBUFSIZE - 1; // Control de buffer circular por máscara bit a bit (2^N - 1)
     Rx->chk = 0;
@@ -41,6 +42,7 @@ void unerPrtcl_Init(_sComm *Rx, _sComm *Tx, volatile uint8_t *buffRx, volatile u
     Tx->indexW = 0;
     Tx->indexData = 0;
     Tx->nBytes = 0;
+    Tx->frameLength = 0;
     Tx->header = HEADER_U;
     Tx->mask = TXBUFSIZE - 1;
     Tx->chk = 0;
@@ -228,7 +230,8 @@ uint8_t unerPrtcl_DecodeHeader(_sComm *dataRx)
             // Lectura de la cantidad de bytes que componen el paquete
             case NBYTES:
                 dataRx->nBytes=dataRx->buff[dataRx->indexR];
-                dataRx->header = TOKEN;
+                dataRx->frameLength = dataRx->nBytes;
+                dataRx->header = dataRx->nBytes >= 2 ? TOKEN : HEADER_U;
             break;
             // Delimitador de inicio de comando ':'
             case TOKEN:
@@ -252,8 +255,10 @@ uint8_t unerPrtcl_DecodeHeader(_sComm *dataRx)
                 }else{
                 	dataRx->header = HEADER_U;
                     // Comprobación de integridad
-                    if(dataRx->buff[dataRx->indexR] == dataRx->chk)
-                        return TRUE; // Trama completa y válida
+                    if(dataRx->buff[dataRx->indexR] == dataRx->chk) {
+                        dataRx->indexR = (dataRx->indexR + 1u) & dataRx->mask;
+                        return TRUE; // Consumir también el checksum.
+                    }
                 }
             break;
             default:

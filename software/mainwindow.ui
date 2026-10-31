@@ -1,107 +1,1006 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <ui version="4.0">
  <class>MainWindow</class>
  <widget class="QMainWindow" name="MainWindow">
   <property name="geometry">
-   <rect><x>0</x><y>0</y><width>900</width><height>600</height></rect>
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1100</width>
+    <height>780</height>
+   </rect>
   </property>
-  <property name="windowTitle"><string>MICRO-Software · Comunicación Serial / UDP</string></property>
+  <property name="windowTitle">
+   <string>MICRO-Software · Comunicación Serial / UDP</string>
+  </property>
   <property name="styleSheet">
    <string notr="true">QMainWindow, QWidget { background: #101725; color: #e4ebf4; font-size: 13px; }
 QTabWidget::pane { border: 1px solid #35445b; border-radius: 5px; background: #182337; }
 QTabBar::tab { background: #1c2a40; color: #aebdd1; padding: 10px 22px; margin-right: 2px; }
 QTabBar::tab:selected { background: #236a79; color: white; }
-QLineEdit, QComboBox, QTextBrowser { background: #0e192b; border: 1px solid #40516a; border-radius: 4px; padding: 7px; color: #f2f6fb; }
+QLineEdit, QComboBox, QSpinBox, QDoubleSpinBox, SmartDoubleSpinBox, QTextBrowser { background: #0e192b; border: 1px solid #40516a; border-radius: 4px; padding: 7px; color: #f2f6fb; }
 QPushButton { background: #176979; color: white; border: 0; border-radius: 4px; padding: 9px 16px; font-weight: bold; }
 QPushButton:hover { background: #23899b; }
 QPushButton:disabled { background: #3c485a; color: #a5afbc; }
 QLabel#label_statusMode { color: #70d8c3; font-weight: bold; }
-QLabel#label_title { font-size: 17px; font-weight: bold; }</string>
+QGroupBox { border: 1px solid #40516a; border-radius: 4px; margin-top: 12px; padding: 12px; }
+QGroupBox::title { subcontrol-origin: margin; left: 12px; }
+QPushButton#pushButton_stop { background: #a32d40; }
+QLabel#label_title { font-size: 17px; font-weight: bold; }
+QSpinBox { padding-right: 34px; min-height: 24px; }
+QSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 28px; background: #267c8d; border: 1px solid #70bfd0; border-top-right-radius: 4px; }
+QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 28px; background: #267c8d; border: 1px solid #70bfd0; border-bottom-right-radius: 4px; }
+QSpinBox::up-button:hover, QSpinBox::down-button:hover { background: #36a1b6; }
+QSpinBox::up-arrow { image: url(:/resources/icons/spin_plus.svg); width: 14px; height: 14px; }
+QSpinBox::down-arrow { image: url(:/resources/icons/spin_minus.svg); width: 14px; height: 14px; }
+QTableWidget QSpinBox { padding: 2px; min-height: 20px; border: 0; background: #182337; }
+
+QDoubleSpinBox, SmartDoubleSpinBox { padding-right: 34px; min-height: 24px; }
+QDoubleSpinBox::up-button, SmartDoubleSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 28px; background: #267c8d; border: 1px solid #70bfd0; border-top-right-radius: 4px; }
+QDoubleSpinBox::down-button, SmartDoubleSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom right; width: 28px; background: #267c8d; border: 1px solid #70bfd0; border-bottom-right-radius: 4px; }
+QDoubleSpinBox::up-button:hover, SmartDoubleSpinBox::up-button:hover, QDoubleSpinBox::down-button:hover, SmartDoubleSpinBox::down-button:hover { background: #36a1b6; }
+QDoubleSpinBox::up-arrow, SmartDoubleSpinBox::up-arrow { image: url(:/resources/icons/spin_plus.svg); width: 14px; height: 14px; }
+QDoubleSpinBox::down-arrow, SmartDoubleSpinBox::down-arrow { image: url(:/resources/icons/spin_minus.svg); width: 14px; height: 14px; }</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QVBoxLayout" name="verticalLayout_main">
-    <property name="leftMargin"><number>16</number></property>
-    <property name="topMargin"><number>16</number></property>
-    <property name="rightMargin"><number>16</number></property>
-    <property name="bottomMargin"><number>16</number></property>
+    <property name="leftMargin">
+     <number>16</number>
+    </property>
+    <property name="topMargin">
+     <number>16</number>
+    </property>
+    <property name="rightMargin">
+     <number>16</number>
+    </property>
+    <property name="bottomMargin">
+     <number>16</number>
+    </property>
+    <item>
+     <layout class="QHBoxLayout" name="layout_globalStop">
+      <item>
+       <widget class="QLabel" name="label_topDistance">
+        <property name="text">
+         <string>Recorrido: — cm</string>
+        </property>
+        <property name="styleSheet">
+         <string>font-size: 18px; font-weight: bold; color: #70d8c3;</string>
+        </property>
+        <property name="toolTip">
+         <string>Distancia media firmada de las cuatro ruedas respecto al último MOVE, calculada por encoders.</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <spacer name="spacer_globalStop">
+        <property name="orientation">
+         <enum>Qt::Orientation::Horizontal</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>40</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item>
+       <widget class="QPushButton" name="pushButton_stop">
+        <property name="minimumSize">
+         <size>
+          <width>110</width>
+          <height>38</height>
+         </size>
+        </property>
+        <property name="toolTip">
+         <string>Detiene todas las ruedas y cancela el movimiento.</string>
+        </property>
+        <property name="text">
+         <string>Parada</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
     <item>
      <widget class="QTabWidget" name="tabWidget_wifi">
-      <property name="currentIndex"><number>0</number></property>
+      <property name="currentIndex">
+       <number>2</number>
+      </property>
       <widget class="QWidget" name="tab_CONN">
-       <attribute name="title"><string>Comunicación</string></attribute>
+       <attribute name="title">
+        <string>Comunicación</string>
+       </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_conn">
-        <property name="leftMargin"><number>22</number></property>
-        <property name="topMargin"><number>20</number></property>
-        <property name="rightMargin"><number>22</number></property>
-        <property name="bottomMargin"><number>20</number></property>
-        <property name="spacing"><number>16</number></property>
-        <item><widget class="QLabel" name="label_title"><property name="text"><string>Comunicación con el robot</string></property></widget></item>
+        <property name="spacing">
+         <number>16</number>
+        </property>
+        <property name="leftMargin">
+         <number>22</number>
+        </property>
+        <property name="topMargin">
+         <number>20</number>
+        </property>
+        <property name="rightMargin">
+         <number>22</number>
+        </property>
+        <property name="bottomMargin">
+         <number>20</number>
+        </property>
+        <item>
+         <widget class="QLabel" name="label_title">
+          <property name="text">
+           <string>Comunicación con el robot</string>
+          </property>
+         </widget>
+        </item>
         <item>
          <layout class="QFormLayout" name="formLayout_connection">
-          <property name="horizontalSpacing"><number>16</number></property>
-          <property name="verticalSpacing"><number>14</number></property>
-          <item row="0" column="0"><widget class="QLabel" name="label_protocol"><property name="text"><string>Protocolo</string></property></widget></item>
-          <item row="0" column="1">
-           <widget class="QComboBox" name="comboBox_protocol">
-            <item><property name="text"><string>Serial (USB)</string></property></item>
-            <item><property name="text"><string>Wi-Fi UDP</string></property></item>
+          <property name="horizontalSpacing">
+           <number>16</number>
+          </property>
+          <property name="verticalSpacing">
+           <number>14</number>
+          </property>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_protocol">
+            <property name="text">
+             <string>Protocolo</string>
+            </property>
            </widget>
           </item>
-          <item row="1" column="0"><widget class="QLabel" name="label_serialPort"><property name="text"><string>Puerto COM</string></property></widget></item>
-          <item row="1" column="1"><layout class="QHBoxLayout" name="horizontalLayout_serial">
-           <item><widget class="QComboBox" name="comboBox_serialPort"/></item>
-           <item><widget class="QPushButton" name="pushButton_refreshPorts"><property name="text"><string>ACTUALIZAR</string></property></widget></item>
-          </layout></item>
-          <item row="2" column="0"><widget class="QLabel" name="label_local_port"><property name="text"><string>Puerto local UDP</string></property></widget></item>
-          <item row="2" column="1"><widget class="QLineEdit" name="lineEdit_local_port"><property name="text"><string>30010</string></property></widget></item>
-          <item row="3" column="0"><widget class="QLabel" name="label_device_ip"><property name="text"><string>IP del dispositivo</string></property></widget></item>
-          <item row="3" column="1"><widget class="QLineEdit" name="lineEdit_device_ip"><property name="placeholderText"><string>Se detecta al recibir UDP</string></property></widget></item>
-          <item row="4" column="0"><widget class="QLabel" name="label_device_port"><property name="text"><string>Puerto del dispositivo</string></property></widget></item>
-          <item row="4" column="1"><widget class="QLineEdit" name="lineEdit_device_port"><property name="text"><string>30001</string></property></widget></item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="comboBox_protocol">
+            <item>
+             <property name="text">
+              <string>Serial (USB)</string>
+             </property>
+            </item>
+            <item>
+             <property name="text">
+              <string>Wi-Fi UDP</string>
+             </property>
+            </item>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_serialPort">
+            <property name="text">
+             <string>Puerto COM</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_serial">
+            <item>
+             <widget class="QComboBox" name="comboBox_serialPort" />
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButton_refreshPorts">
+              <property name="text">
+               <string>ACTUALIZAR</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_local_port">
+            <property name="text">
+             <string>Puerto local UDP</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QLineEdit" name="lineEdit_local_port">
+            <property name="text">
+             <string>30010</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_device_ip">
+            <property name="text">
+             <string>IP del dispositivo</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QLineEdit" name="lineEdit_device_ip">
+            <property name="placeholderText">
+             <string>Se detecta al recibir UDP</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0">
+           <widget class="QLabel" name="label_device_port">
+            <property name="text">
+             <string>Puerto del dispositivo</string>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="1">
+           <widget class="QLineEdit" name="lineEdit_device_port">
+            <property name="text">
+             <string>30001</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_actions">
-          <item><widget class="QPushButton" name="pushButton_connect"><property name="text"><string>CONECTAR</string></property></widget></item>
-          <item><spacer name="horizontalSpacer_actions"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
+          <item>
+           <widget class="QPushButton" name="pushButton_connect">
+            <property name="text">
+             <string>CONECTAR</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_actions">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
          </layout>
         </item>
-        <item><widget class="QLabel" name="label_statusMode"><property name="text"><string>Serial desconectado</string></property></widget></item>
-        <item><widget class="QLabel" name="label_commandTitle"><property name="text"><string>Comandos del protocolo UNER</string></property></widget></item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_command">
-          <item><widget class="QComboBox" name="comboBox_command"/></item>
-          <item><widget class="QPushButton" name="pushButton_sendCommand"><property name="text"><string>ENVIAR</string></property></widget></item>
-         </layout>
+         <widget class="QLabel" name="label_statusMode">
+          <property name="text">
+           <string>Serial desconectado</string>
+          </property>
+         </widget>
         </item>
-        <item><widget class="QLabel" name="label_commandSupport"><property name="text"><string>Este firmware responde GETALIVE con ALIVE + ACK.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
-        <item><spacer name="verticalSpacer_conn"><property name="orientation"><enum>Qt::Vertical</enum></property><property name="sizeHint" stdset="0"><size><width>20</width><height>40</height></size></property></spacer></item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="tab_LOGS">
-       <attribute name="title"><string>Registro de comunicación</string></attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_logs">
-        <property name="leftMargin"><number>20</number></property>
-        <property name="topMargin"><number>18</number></property>
-        <property name="rightMargin"><number>20</number></property>
-        <property name="bottomMargin"><number>18</number></property>
-        <item><widget class="QLabel" name="label_raw"><property name="text"><string>Datos recibidos y enviados</string></property></widget></item>
-        <item><widget class="QTextBrowser" name="textBrowserUnProcessed"/></item>
-        <item><widget class="QLabel" name="label_processed"><property name="text"><string>Tramas UNER y respuestas</string></property></widget></item>
-        <item><widget class="QTextBrowser" name="textBrowserProcessed"/></item>
+        <item>
+         <widget class="QLabel" name="label_processed">
+          <property name="text">
+           <string>Registro de comunicación · logs procesados</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTextBrowser" name="textBrowserProcessed" />
+        </item>
         <item>
          <layout class="QHBoxLayout" name="horizontalLayout_logs">
-          <item><spacer name="horizontalSpacer_logs"><property name="orientation"><enum>Qt::Horizontal</enum></property><property name="sizeHint" stdset="0"><size><width>40</width><height>20</height></size></property></spacer></item>
-          <item><widget class="QPushButton" name="pushButton_clearLogs"><property name="text"><string>LIMPIAR REGISTRO</string></property></widget></item>
+          <item>
+           <widget class="QPushButton" name="pushButton_exportTxt">
+            <property name="toolTip">
+             <string>Exportar los últimos 5 minutos de comunicación a archivo .txt</string>
+            </property>
+            <property name="text">
+             <string>EXPORTAR .TXT</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_exportXls">
+            <property name="toolTip">
+             <string>Exportar los últimos 5 minutos de comunicación a archivo .xls de Excel</string>
+            </property>
+            <property name="text">
+             <string>EXPORTAR .XLS</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_logs">
+            <property name="orientation">
+             <enum>Qt::Orientation::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButton_clearLogs">
+            <property name="text">
+             <string>LIMPIAR REGISTRO</string>
+            </property>
+           </widget>
+          </item>
          </layout>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_CONFIG">
+       <property name="styleSheet">
+        <string notr="true">QGroupBox { padding: 8px; margin-top: 10px; }
+QSpinBox, QDoubleSpinBox, SmartDoubleSpinBox, QComboBox { padding-top: 3px; padding-bottom: 3px; min-height: 20px; }
+QPushButton { padding: 6px 12px; }</string>
+       </property>
+       <attribute name="title">
+        <string>Configuración</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="layout_configPage">
+        <item>
+         <widget class="QWidget" name="configContents">
+           <layout class="QGridLayout" name="gridLayout_config" columnstretch="3,2">
+            <property name="horizontalSpacing"><number>16</number></property>
+            <item row="0" column="0" alignment="Qt::AlignTop">
+             <widget class="QGroupBox" name="groupBox_pwm">
+              <property name="title">
+               <string>PWM de testeo</string>
+              </property>
+              <layout class="QFormLayout" name="formLayout_pwm">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_fr">
+                 <property name="text">
+                  <string>Delantera derecha (FR)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QSpinBox" name="spinBox_fr">
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::ButtonSymbols::PlusMinus</enum>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="suffix">
+                  <string> PWM</string>
+                 </property>
+                 <property name="minimum">
+                  <number>-255</number>
+                 </property>
+                 <property name="maximum">
+                  <number>255</number>
+                 </property>
+                 <property name="singleStep">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_fl">
+                 <property name="text">
+                  <string>Delantera izquierda (FL)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QSpinBox" name="spinBox_fl">
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::ButtonSymbols::PlusMinus</enum>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="suffix">
+                  <string> PWM</string>
+                 </property>
+                 <property name="minimum">
+                  <number>-255</number>
+                 </property>
+                 <property name="maximum">
+                  <number>255</number>
+                 </property>
+                 <property name="singleStep">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_rr">
+                 <property name="text">
+                  <string>Trasera derecha (RR)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QSpinBox" name="spinBox_rr">
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::ButtonSymbols::PlusMinus</enum>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="suffix">
+                  <string> PWM</string>
+                 </property>
+                 <property name="minimum">
+                  <number>-255</number>
+                 </property>
+                 <property name="maximum">
+                  <number>255</number>
+                 </property>
+                 <property name="singleStep">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_rl">
+                 <property name="text">
+                  <string>Trasera izquierda (RL)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QSpinBox" name="spinBox_rl">
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::ButtonSymbols::PlusMinus</enum>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="suffix">
+                  <string> PWM</string>
+                 </property>
+                 <property name="minimum">
+                  <number>-255</number>
+                 </property>
+                 <property name="maximum">
+                  <number>255</number>
+                 </property>
+                 <property name="singleStep">
+                  <number>1</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0" colspan="2">
+                <widget class="QPushButton" name="pushButton_sendCommand">
+                 <property name="text">
+                  <string>ENVIAR PWM DE TESTEO</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item row="1" column="0" alignment="Qt::AlignTop">
+             <widget class="QGroupBox" name="groupBox_moveSettings">
+              <property name="title">
+               <string>Potencia para movimiento por distancia</string>
+              </property>
+              <layout class="QFormLayout" name="formLayout_moveSettings">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_move_fr">
+                 <property name="text">
+                  <string>Delantera derecha (FR)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QSpinBox" name="spinBox_move_fr">
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::ButtonSymbols::PlusMinus</enum>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="suffix">
+                  <string> PWM</string>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>255</number>
+                 </property>
+                 <property name="value">
+                  <number>170</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_move_fl">
+                 <property name="text">
+                  <string>Delantera izquierda (FL)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QSpinBox" name="spinBox_move_fl">
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::ButtonSymbols::PlusMinus</enum>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="suffix">
+                  <string> PWM</string>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>255</number>
+                 </property>
+                 <property name="value">
+                  <number>170</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_move_rr">
+                 <property name="text">
+                  <string>Trasera derecha (RR)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QSpinBox" name="spinBox_move_rr">
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::ButtonSymbols::PlusMinus</enum>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="suffix">
+                  <string> PWM</string>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>255</number>
+                 </property>
+                 <property name="value">
+                  <number>175</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_move_rl">
+                 <property name="text">
+                  <string>Trasera izquierda (RL)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QSpinBox" name="spinBox_move_rl">
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::ButtonSymbols::PlusMinus</enum>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="suffix">
+                  <string> PWM</string>
+                 </property>
+                 <property name="minimum">
+                  <number>0</number>
+                 </property>
+                 <property name="maximum">
+                  <number>255</number>
+                 </property>
+                 <property name="value">
+                  <number>185</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QLabel" name="label_moveDirection">
+                 <property name="text"><string>Dirección</string></property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QComboBox" name="comboBox_moveDirection">
+                 <property name="currentIndex"><number>0</number></property>
+                 <property name="toolTip"><string>Seleccioná longitudinal, lateral o una diagonal de 45°. La distancia es el recorrido del chasis.</string></property>
+                 <item><property name="text"><string>Longitudinal</string></property></item>
+                 <item><property name="text"><string>Lateral</string></property></item>
+                 <item><property name="text"><string>Diagonal</string></property></item>
+                </widget>
+               </item>
+               <item row="5" column="0">
+                <widget class="QLabel" name="label_distance">
+                 <property name="text">
+                  <string>Distancia en cm (+ avance / − retroceso)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QSpinBox" name="spinBox_distance">
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::ButtonSymbols::PlusMinus</enum>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="suffix">
+                  <string> cm</string>
+                 </property>
+                 <property name="minimum">
+                  <number>-1000</number>
+                 </property>
+                 <property name="maximum">
+                  <number>1000</number>
+                 </property>
+                 <property name="singleStep">
+                  <number>1</number>
+                 </property>
+                 <property name="value">
+                  <number>90</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="0" colspan="2">
+                <widget class="QLabel" name="label_movePreview">
+                 <property name="text"><string>Avance longitudinal: 90 cm</string></property>
+                 <property name="wordWrap"><bool>true</bool></property>
+                </widget>
+               </item>
+               <item row="7" column="0" colspan="2">
+                <widget class="QLabel" name="label_moveWheelPattern">
+                 <property name="text"><string>Sentidos FR / FL / RR / RL: + / + / + / +</string></property>
+                 <property name="wordWrap"><bool>true</bool></property>
+                </widget>
+               </item>
+               <item row="8" column="0" colspan="2">
+                <widget class="QLabel" name="label_lateralHelp">
+                 <property name="text"><string>Lateral: + izquierda / − derecha, mirando hacia el frente del robot. Usa los cuatro límites PWM superiores. El recorrido por encoders es una estimación: el deslizamiento de los rodillos puede alterar la distancia física.</string></property>
+                 <property name="wordWrap"><bool>true</bool></property>
+                </widget>
+               </item>
+               <item row="9" column="0" colspan="2">
+                <widget class="QPushButton" name="pushButton_move">
+                 <property name="text">
+                  <string>MOVER DISTANCIA</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+            <item row="0" column="1" rowspan="2" alignment="Qt::AlignTop">
+             <widget class="QGroupBox" name="groupBox_pid">
+              <property name="title">
+               <string>Control en cascada · ajustes PID</string>
+              </property>
+              <layout class="QFormLayout" name="formLayout_pid">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_pid_kpPosition">
+                 <property name="text">
+                  <string>Kp posición (1/s)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="SmartDoubleSpinBox" name="doubleSpinBox_kpPosition">
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
+                 <property name="minimum">
+                  <double>0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>50</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.1</double>
+                 </property>
+                 <property name="value">
+                  <double>2</double>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::PlusMinus</enum>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="label_pid_kpSpeed">
+                 <property name="text">
+                  <string>Kp velocidad (PWM / (ticks/s))</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="SmartDoubleSpinBox" name="doubleSpinBox_kpSpeed">
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
+                 <property name="minimum">
+                  <double>0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>2</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.005</double>
+                 </property>
+                 <property name="value">
+                  <double>0.07</double>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::PlusMinus</enum>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="label_pid_kiSpeed">
+                 <property name="text">
+                  <string>Ki velocidad (PWM / tick)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="SmartDoubleSpinBox" name="doubleSpinBox_kiSpeed">
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
+                 <property name="minimum">
+                  <double>0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>5</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.01</double>
+                 </property>
+                 <property name="value">
+                  <double>0.5</double>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::PlusMinus</enum>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
+                <widget class="QLabel" name="label_pid_kpSync">
+                 <property name="text">
+                  <string>Kp sincronismo entre ruedas (1/s)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="SmartDoubleSpinBox" name="doubleSpinBox_kpSync">
+                 <property name="decimals">
+                  <number>4</number>
+                 </property>
+                 <property name="minimum">
+                  <double>0</double>
+                 </property>
+                 <property name="maximum">
+                  <double>20</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.1</double>
+                 </property>
+                 <property name="value">
+                  <double>1.5</double>
+                 </property>
+                 <property name="keyboardTracking">
+                  <bool>false</bool>
+                 </property>
+                 <property name="buttonSymbols">
+                  <enum>QAbstractSpinBox::PlusMinus</enum>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0" colspan="2">
+                <widget class="QPushButton" name="pushButton_applyPid">
+                 <property name="text">
+                  <string>APLICAR PID</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="0" colspan="2">
+                <widget class="QLabel" name="label_pidStatus">
+                 <property name="text">
+                  <string>Valores iniciales; aplicar con el auto detenido. Cambios en RAM, no persistentes.</string>
+                 </property>
+                 <property name="wordWrap">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_VISUAL">
+       <attribute name="title">
+        <string>Visualización</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="layout_visual">
+        <item>
+         <widget class="QLabel" name="label_visualDistance">
+          <property name="styleSheet">
+           <string>font-size: 28px; font-weight: bold; color: #70d8c3;</string>
+          </property>
+          <property name="text">
+           <string>Recorrido por encoders: — cm</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_visualTarget">
+          <property name="text">
+           <string>Objetivo recibido: — cm · restante medio: — cm</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_visualState">
+          <property name="text">
+           <string>Sin telemetría de movimiento</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QProgressBar" name="progressBar_distance">
+          <property name="value">
+           <number>0</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QTableWidget" name="tableWidget_visual">
+          <property name="editTriggers">
+           <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+          </property>
+          <property name="rowCount">
+           <number>4</number>
+          </property>
+          <property name="columnCount">
+           <number>8</number>
+          </property>
+          <row />
+          <row />
+          <row />
+          <row />
+          <column>
+           <property name="text">
+            <string>Rueda</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Ticks</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Recorrido (cm)</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Restante (cm)</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>PWM aplicado</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>V objetivo</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>V medida</string>
+           </property>
+          </column>
+          <column>
+           <property name="text">
+            <string>Integral</string>
+           </property>
+          </column>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_visualScale">
+          <property name="text">
+           <string>Calibración: esperando escala y cuentas por vuelta del firmware.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_visualFreshness">
+          <property name="text">
+           <string>Esperando la primera muestra del firmware.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_visualNote">
+          <property name="text">
+           <string>Recorrido neto desde el último MOVE, inferido del giro de las ruedas. El promedio no detecta deslizamiento. Llegada confirmada sólo cuando las cuatro ruedas están dentro de tolerancia durante 100 ms.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_visualPid">
+          <property name="text">
+           <string>Esperando diagnóstico del PID.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::TextSelectableByMouse</set>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="label_visualEncoderHealth">
+          <property name="text">
+           <string>Esperando actividad de los canales Hall A/B.</string>
+          </property>
+          <property name="wordWrap">
+           <bool>true</bool>
+          </property>
+          <property name="textInteractionFlags">
+           <set>Qt::TextSelectableByMouse</set>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>
      </widget>
     </item>
    </layout>
+   <widget class="QTextBrowser" name="textBrowserUnProcessed">
+    <property name="geometry">
+     <rect>
+      <x>0</x>
+      <y>0</y>
+      <width>100</width>
+      <height>30</height>
+     </rect>
+    </property>
+    <property name="visible">
+     <bool>false</bool>
+    </property>
+   </widget>
   </widget>
  </widget>
- <resources/>
- <connections/>
+ <resources />
+ <connections />
+ <customwidgets>
+  <customwidget>
+   <class>SmartDoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header>smartdoublespinbox.h</header>
+  </customwidget>
+ </customwidgets>
 </ui>

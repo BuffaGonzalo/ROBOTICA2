@@ -2,6 +2,8 @@
 #include "esp01.h"
 #include "unerPrtcl.h"
 #include "util.h"
+#include "robot_commands.h"
+#include "motion.h"
 #include <string.h>
 
 static _sESP01Handle wifi;
@@ -11,6 +13,9 @@ static char target_ip[16];
 static uint16_t target_port, udp_local_port;
 static uint8_t connect_pending, reply_pending, connected, pc_seen;
 static uint8_t alive_awaiting_send_ok;
+static uint8_t pwm_reply_pending, pwm_reply_status, alive_reply_status;
+static uint8_t extra_reply_id = SETPWM;
+static uint32_t telemetry_ms;
 static uint32_t next_alive_ms, last_pc_alive_ms;
 static void (*log_message)(const char *);
 
@@ -41,6 +46,7 @@ static void changed_state(_eESP01STATUS state) {
         connected = 1;
         pc_seen = 0;
         reply_pending = 0;
+        pwm_reply_pending = 0;
         next_alive_ms = 0;
     }
     if (state == ESP01_UDPTCP_DISCONNECTED || state == ESP01_WIFI_DISCONNECTED) {
@@ -51,6 +57,7 @@ static void changed_state(_eESP01STATUS state) {
         alive_awaiting_send_ok = 0;
         pc_seen = 0;
         reply_pending = 0;
+        pwm_reply_pending = 0;
     }
     if (state == ESP01_SEND_OK && alive_awaiting_send_ok) {
         alive_awaiting_send_ok = 0;
@@ -69,6 +76,8 @@ void FlexiLink_Init(void (*set_ch_pd)(uint8_t), int (*uart_write)(uint8_t),
     log_message = log;
     connect_pending = reply_pending = connected = pc_seen = 0;
     alive_awaiting_send_ok = 0;
+    pwm_reply_pending = 0;
+    alive_reply_status = ACK;
     unerPrtcl_Init(&rx, &tx, rx_buffer, tx_buffer);
     wifi.DoCHPD = set_ch_pd;
     wifi.WriteUSARTByte = uart_write;
@@ -89,28 +98,52 @@ void FlexiLink_Task(uint32_t now_ms) {
         ESP01_StartUDP(target_ip, target_port, udp_local_port);
     }
     while (unerPrtcl_DecodeHeader(&rx)) {
-        if (rx.buff[rx.indexData] == ALIVE) {
+        uint8_t status = RobotCommands_Handle(&rx, now_ms);
+        uint8_t id = rx.buff[rx.indexData];
+        if (status && id == ALIVE) {
             reply_pending = 1;
-            pc_seen = 1;
-            last_pc_alive_ms = now_ms;
+            alive_reply_status = status;
+            if (status == ACK) {
+                pc_seen = 1;
+                last_pc_alive_ms = now_ms;
+            }
+        } else if (status && (id == SETPWM || id == MOVE || id == STOP || id == SETGAINS)) {
+            pwm_reply_pending = 1;
+            extra_reply_id = id;
+            pwm_reply_status = status;
         }
     }
     if (pc_seen && (uint32_t)(now_ms - last_pc_alive_ms) >= 6000u) {
         pc_seen = 0;
         next_alive_ms = 0;
     }
-    if (!connected || (!reply_pending &&
+    if (connected && pc_seen && !reply_pending && !pwm_reply_pending && (uint32_t)(now_ms-telemetry_ms)>=200u) {
+        uint8_t payload[MOTION_TELEMETRY_SIZE];
+        uint8_t length=Motion_Telemetry(payload);
+        tx.indexW=tx.indexR=0;
+        unerPrtcl_PutHeaderOnTx(&tx,MOTION_STATUS,length+1);
+        for(uint8_t i=0;i<length;++i) unerPrtcl_PutByteOnTx(&tx,payload[i]);
+        unerPrtcl_PutByteOnTx(&tx,tx.chk);
+        if(ESP01_Send(0,tx.buff,0,tx.nBytes,TXBUFSIZE)==ESP01_SEND_READY) telemetry_ms=now_ms;
+        return;
+    }
+    if (!connected || (!reply_pending && !pwm_reply_pending &&
         (pc_seen || (int32_t)(now_ms - next_alive_ms) < 0)))
         return;
 
     /* Equivale a UNER 03 : A0 0D 98, la trama de referencia. */
     tx.indexW = tx.indexR = 0;
-    unerPrtcl_PutHeaderOnTx(&tx, ALIVE, 2);
-    unerPrtcl_PutByteOnTx(&tx, ACK);
+    uint8_t sending_pwm = pwm_reply_pending;
+    unerPrtcl_PutHeaderOnTx(&tx, sending_pwm ? extra_reply_id : ALIVE, 2);
+    unerPrtcl_PutByteOnTx(&tx, sending_pwm ? pwm_reply_status :
+                         (reply_pending ? alive_reply_status : ACK));
     unerPrtcl_PutByteOnTx(&tx, tx.chk);
     if (ESP01_Send(0, tx.buff, 0, tx.nBytes, TXBUFSIZE) == ESP01_SEND_READY) {
-        alive_awaiting_send_ok = 1;
-        reply_pending = 0;
-        if (!pc_seen) next_alive_ms = now_ms + 100u;
+        alive_awaiting_send_ok = !sending_pwm;
+        if (sending_pwm) pwm_reply_pending = 0;
+        else {
+            reply_pending = 0;
+            if (!pc_seen) next_alive_ms = now_ms + 100u;
+        }
     }
 }
