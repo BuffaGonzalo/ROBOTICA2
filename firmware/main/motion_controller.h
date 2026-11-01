@@ -12,11 +12,14 @@ constexpr double NOMINAL_TICKS_PER_REV = PPR_MOTOR * GEAR_RATIO * 4.0;
 constexpr double TICKS_PER_REV = ENCODER_TICKS_PER_WHEEL_REV;
 static_assert(TICKS_PER_REV>0 && TICKS_PER_REV<=1000000,"Invalid wheel encoder calibration");
 constexpr double TICKS_PER_MM = TICKS_PER_REV / (3.14159265358979323846 * WHEEL_DIAMETER_MM);
+constexpr double ARRIVAL_TOLERANCE_MM = 5.0;
+constexpr int32_t ARRIVAL_TOLERANCE_TICKS = (int32_t)(ARRIVAL_TOLERANCE_MM*TICKS_PER_MM+0.5);
 // Wire: signed micrometres (0.001 mm). Limit keeps arithmetic and run time bounded.
 constexpr int32_t MAX_DISTANCE_UM = 10000000L;
 constexpr int PWM_LIMIT = 185;
-// Valores base solicitados, orden FR, FL, RR, RL (no calibración medida).
-constexpr int PWM_DEADZONE_BY_WHEEL[4] = {170,170,175,185};
+// Compensacion de friccion, independiente de los limites de potencia.
+// FR=57 medido; FL/RR/RL=45 recuperados del ajuste anterior, a calibrar bajo carga.
+constexpr int PWM_DEADZONE_BY_WHEEL[4] = {57,45,45,45};
 constexpr uint8_t DEFAULT_MOVE_PWM[4] = {170,170,175,185};
 constexpr int32_t DEFAULT_DISTANCE_UM = 900000L; // 90 cm; no inicia movimiento.
 constexpr float POSITION_KP = 2.0f;
@@ -52,6 +55,16 @@ struct MotionController {
     int32_t progressMark[4] = {};
     uint8_t faultMask = 0;
     uint8_t activeMask = 15; // Diagonales: solo el par motriz participa del control.
+    uint8_t arrivedMask = 0;
+    int32_t wheelTargets[4] = {};
+    float wheelRatio[4] = {1,1,1,1};
+    int32_t arrivalToleranceTicks(uint8_t wheel=0) const {
+        // Evitar que una consigna corta quede completamente dentro de la banda.
+        const int32_t quarter=labs(wheelTargets[wheel])/4;
+        const int32_t scaled=(int32_t)(ARRIVAL_TOLERANCE_TICKS*wheelRatio[wheel]+0.5f);
+        const int32_t cap=scaled>0 ? scaled : 1;
+        return quarter<cap ? (quarter>0 ? quarter : 1) : cap;
+    }
     bool setGains(const float *g) {
         if(state==RUNNING) return false;
         const float maximum[4]={50,2,5,20};
@@ -70,6 +83,7 @@ struct MotionController {
     }
     void start(int32_t goal, uint32_t now, uint8_t limit=PWM_LIMIT) {
         activeMask=15;
+        arrivedMask=0;
         for(uint8_t i=0;i<4;++i) pwmLimit[i]=limit;
         stop(RUNNING); target=goal; last=heartbeat=started=now; settling=false; faultMask=0;
         // Independent of encoder activity: even false pulses cannot prolong a MOVE forever.
@@ -77,6 +91,7 @@ struct MotionController {
         uint32_t budget=4000u+(uint32_t)((double)labs(goal)*1000.0/MIN_AVERAGE_TICKS_S);
         moveBudgetMs=budget<180000u ? budget : 180000u;
         for (uint8_t i=0;i<4;++i) {
+            wheelTargets[i]=goal; wheelRatio[i]=1;
             position[i]=previous[i]=progressMark[i]=0; lastProgress[i]=now;
             velocity[i]=0; pwm[i]=0;
         }
@@ -92,6 +107,20 @@ struct MotionController {
         }
         if(!any) stop(STOPPED);
     }
+    // Entradas en modulo: Motion_Task normaliza los signos fisicos.
+    // Una referencia comun normalizada preserva las proporciones de H(0).
+    void startWheelGoals(const int32_t *goals,uint32_t now,const uint8_t *limits) {
+        int32_t peak=0;
+        for(uint8_t i=0;i<4;++i) if(goals[i]>peak) peak=goals[i];
+        start(peak,now); activeMask=0;
+        for(uint8_t i=0;i<4;++i) {
+            wheelTargets[i]=goals[i];
+            wheelRatio[i]=peak>0 ? (float)goals[i]/peak : 0;
+            pwmLimit[i]=goals[i]>0 ? limits[i] : 0;
+            if(goals[i]>0) activeMask|=1u<<i;
+        }
+        if(!activeMask) stop(ARRIVED);
+    }
     // Called once per real 10 ms sample, never catch up with duplicate encoder samples.
     void update(const int32_t *counts, uint32_t now) {
         if (state != RUNNING) return;
@@ -102,7 +131,7 @@ struct MotionController {
         if ((uint32_t)(now-heartbeat)>3000) { stop(LINK_LOST); return; }
         if ((uint32_t)(now-started)>moveBudgetMs) { stop(MOVE_TIMEOUT); return; }
         float dt=elapsed*0.001f, mean=0;
-        uint8_t activeCount=0;
+        float phaseWeight=0;
         bool inside=true;
         bool crossed[4]={};
         for(uint8_t i=0;i<4;++i) {
@@ -111,22 +140,30 @@ struct MotionController {
                 previous[i]=counts[i]; velocity[i]=integral[i]=demand[i]=0; pwm[i]=0;
                 continue;
             }
-            mean+=counts[i]; ++activeCount;
             velocity[i]+=0.35f*((counts[i]-previous[i])/dt-velocity[i]);
             if(labs(counts[i]-progressMark[i])>=4) { lastProgress[i]=now; progressMark[i]=counts[i]; }
-            const int32_t oldError=target-previous[i];
-            const int32_t newError=target-counts[i];
+            const int32_t goal=wheelTargets[i];
+            const int32_t oldError=goal-previous[i];
+            const int32_t newError=goal-counts[i];
             crossed[i]=(oldError>0 && newError<0) || (oldError<0 && newError>0);
+            // Enclavar llegada por rueda: no volver a energizarla para corregir
+            // pequeños residuos ni invertir el giro al cruzar el objetivo.
+            if(labs(newError)<=arrivalToleranceTicks(i) || crossed[i]) arrivedMask|=1u<<i;
             // 2. Reset agresivo al cruzar la meta; frenar este ciclo completo.
             if(crossed[i]) { integral[i]=0; demand[i]=0; pwm[i]=0; }
             integral[i]=bounded(integral[i],-50.0f,50.0f);
             previous[i]=counts[i];
-            if((target>0 && counts[i]<-100) || (target<0 && counts[i]>100)) {
+            if((goal>0 && counts[i]<-100) || (goal<0 && counts[i]>100)) {
                 faultMask|=1u<<i; stop(DIRECTION_FAULT); return;
             }
-            if(labs(target-counts[i])>5) inside=false;
+            if(!(arrivedMask&(1u<<i))) inside=false;
         }
-        if(activeCount) mean/=activeCount;
+        // Fase comun por minimos cuadrados. No amplificar el ruido de una
+        // rueda cuya referencia es casi cero ni sincronizar contra una ya frenada.
+        for(uint8_t i=0;i<4;++i) if((activeMask&(1u<<i)) && !(arrivedMask&(1u<<i))) {
+            mean+=counts[i]*wheelRatio[i]; phaseWeight+=wheelRatio[i]*wheelRatio[i];
+        }
+        mean=phaseWeight>0 ? mean/phaseWeight : target;
         if(inside) {
             for(uint8_t i=0;i<4;++i) { pwm[i]=0; integral[i]=demand[i]=0; }
             if(!settling) { settling=true; settledSince=now; }
@@ -135,17 +172,19 @@ struct MotionController {
         }
         settling=false;
         for(uint8_t i=0;i<4;++i)
-            if((activeMask&(1u<<i)) && labs(target-counts[i])>5 && (uint32_t)(now-lastProgress[i])>1000) faultMask|=1u<<i;
+            if((activeMask&(1u<<i)) && !(arrivedMask&(1u<<i)) &&
+               (uint32_t)(now-lastProgress[i])>1000u+(uint32_t)(4000.0f/(MAX_TICKS_S*wheelRatio[i]))) faultMask|=1u<<i;
         if(faultMask) { stop(STALLED); return; }
         for(uint8_t i=0;i<4;++i) {
-            const int32_t error=target-counts[i];
+            const int32_t error=wheelTargets[i]-counts[i];
             // 3. Banda de llegada: cero velocidad y memoria; pwm=0 ordena HARD BRAKE.
-            if(labs(error)<=5 || crossed[i] || !pwmLimit[i]) {
+            if((arrivedMask&(1u<<i)) || !pwmLimit[i]) {
                 pwm[i]=0; integral[i]=0; demand[i]=0; continue;
             }
-            float desired=bounded(kpPosition*error+kpSync*(mean-counts[i]),-MAX_TICKS_S,MAX_TICKS_S);
+            const float ratio=wheelRatio[i];
+            float desired=bounded(kpPosition*error+kpSync*(mean*ratio-counts[i]),-MAX_TICKS_S*ratio,MAX_TICKS_S*ratio);
             if(desired*error<0) desired=0;
-            demand[i]+=bounded(desired-demand[i],-ACCEL_TICKS_S2*dt,ACCEL_TICKS_S2*dt);
+            demand[i]+=bounded(desired-demand[i],-ACCEL_TICKS_S2*ratio*dt,ACCEL_TICKS_S2*ratio*dt);
             const float ve=demand[i]-velocity[i];
             // 2. Integral en unidades PWM: aporte máximo ±50, con anti-windup por saturación.
             const float trial=bounded(integral[i]+kiSpeed*ve*dt,-50.0f,50.0f);

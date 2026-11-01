@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MICRO-Software · Comunicación Serial / UDP</string>
+   <string>OSOYOO Robot App - Robotica 2</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QMainWindow, QWidget { background: #101725; color: #e4ebf4; font-size: 13px; }
@@ -33,7 +33,6 @@ QSpinBox::down-button { subcontrol-origin: border; subcontrol-position: bottom r
 QSpinBox::up-button:hover, QSpinBox::down-button:hover { background: #36a1b6; }
 QSpinBox::up-arrow { image: url(:/resources/icons/spin_plus.svg); width: 14px; height: 14px; }
 QSpinBox::down-arrow { image: url(:/resources/icons/spin_minus.svg); width: 14px; height: 14px; }
-QTableWidget QSpinBox { padding: 2px; min-height: 20px; border: 0; background: #182337; }
 
 QDoubleSpinBox, SmartDoubleSpinBox { padding-right: 34px; min-height: 24px; }
 QDoubleSpinBox::up-button, SmartDoubleSpinBox::up-button { subcontrol-origin: border; subcontrol-position: top right; width: 28px; background: #267c8d; border: 1px solid #70bfd0; border-top-right-radius: 4px; }
@@ -61,13 +60,13 @@ QDoubleSpinBox::down-arrow, SmartDoubleSpinBox::down-arrow { image: url(:/resour
       <item>
        <widget class="QLabel" name="label_topDistance">
         <property name="text">
-         <string>Recorrido: — cm</string>
+         <string>Esperando telemetría · Recorrido: — cm</string>
         </property>
         <property name="styleSheet">
          <string>font-size: 18px; font-weight: bold; color: #70d8c3;</string>
         </property>
         <property name="toolTip">
-         <string>Distancia media firmada de las cuatro ruedas respecto al último MOVE, calculada por encoders.</string>
+         <string>Estado del evento y recorrido del último movimiento, calculado por encoders.</string>
         </property>
        </widget>
       </item>
@@ -105,8 +104,26 @@ QDoubleSpinBox::down-arrow, SmartDoubleSpinBox::down-arrow { image: url(:/resour
     <item>
      <widget class="QTabWidget" name="tabWidget_wifi">
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
+      <widget class="QWidget" name="tab_MAIN">
+       <attribute name="title"><string>Visualización</string></attribute>
+       <layout class="QVBoxLayout" name="layout_mainPlan" stretch="0,1,0">
+        <item><layout class="QHBoxLayout" name="layout_routeControls">
+         <item><widget class="QPushButton" name="pushButton_runRoute"><property name="text"><string>Ejecutar ruta</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_reverseRoute"><property name="text"><string>Ruta inversa</string></property><property name="toolTip"><string>Desde el extremo final, recorre los setpoints en orden inverso hasta el origen. Conserva la ruta dibujada.</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_routeOrientation"><property name="text"><string>Orientación</string></property><property name="checkable"><bool>true</bool></property><property name="toolTip"><string>Activa los ángulos de llegada manteniendo el recorrido recto. Arrastrá las flechas para orientar o hacé doble clic en un setpoint para editar X, Y y ángulo. Margen de llegada: hasta 1 cm y 3°.</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_resumeRoute"><property name="text"><string>Continuar ruta</string></property><property name="toolTip"><string>Retoma la ruta detenida por Parada desde la última posición estimada confirmada por el robot.</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_routeArc"><property name="text"><string>Arco</string></property><property name="checkable"><bool>true</bool></property><property name="toolTip"><string>Los nuevos setpoints crean arcos de 180°. Clic en un setpoint para editar X, Y, orientación, ángulo y sentido del arco. Desactivar vuelve a crear rectas.</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_clearRoute"><property name="text"><string>Borrar puntos</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_resetMap"><property name="text"><string>Reset</string></property><property name="toolTip"><string>Vuelve la posición y el recorrido mostrado a cero, sin borrar la ruta. No mueve físicamente el robot.</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_importRoute"><property name="text"><string>Importar</string></property><property name="toolTip"><string>Reemplaza la ruta por los puntos de un archivo JSON válido.</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_exportRoute"><property name="text"><string>Exportar</string></property><property name="toolTip"><string>Guarda los puntos de la ruta y la orientación del plano en un archivo JSON.</string></property></widget></item>
+        </layout></item>
+        <item><widget class="RoutePlanWidget" name="routePlan"/></item>
+        <item><widget class="QLabel" name="label_routeStatus"><property name="text"><string>Robot en (0, 0) cm. Esta pestaña trabaja con setpoints XY: clic izquierdo añade o arrastra; derecho elimina.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
+       </layout>
+      </widget>
       <widget class="QWidget" name="tab_CONN">
        <attribute name="title">
         <string>Comunicación</string>
@@ -327,9 +344,10 @@ QPushButton { padding: 6px 12px; }</string>
        <layout class="QVBoxLayout" name="layout_configPage">
         <item>
          <widget class="QWidget" name="configContents">
-           <layout class="QGridLayout" name="gridLayout_config" columnstretch="3,2">
+           <layout class="QGridLayout" name="gridLayout_config" columnstretch="1,1" rowstretch="0,0,1">
             <property name="horizontalSpacing"><number>16</number></property>
-            <item row="0" column="0" alignment="Qt::AlignTop">
+            <property name="verticalSpacing"><number>12</number></property>
+            <item row="0" column="1" alignment="Qt::AlignTop">
              <widget class="QGroupBox" name="groupBox_pwm">
               <property name="title">
                <string>PWM de testeo</string>
@@ -461,7 +479,7 @@ QPushButton { padding: 6px 12px; }</string>
               </layout>
              </widget>
             </item>
-            <item row="1" column="0" alignment="Qt::AlignTop">
+            <item row="0" column="0" rowspan="2" alignment="Qt::AlignTop">
              <widget class="QGroupBox" name="groupBox_moveSettings">
               <property name="title">
                <string>Potencia para movimiento por distancia</string>
@@ -657,7 +675,7 @@ QPushButton { padding: 6px 12px; }</string>
               </layout>
              </widget>
             </item>
-            <item row="0" column="1" rowspan="2" alignment="Qt::AlignTop">
+            <item row="1" column="1" alignment="Qt::AlignTop">
              <widget class="QGroupBox" name="groupBox_pid">
               <property name="title">
                <string>Control en cascada · ajustes PID</string>
@@ -811,171 +829,18 @@ QPushButton { padding: 6px 12px; }</string>
               </layout>
              </widget>
             </item>
+            <item row="2" column="0" colspan="2">
+             <spacer name="spacer_configBottom">
+              <property name="orientation"><enum>Qt::Vertical</enum></property>
+              <property name="sizeHint" stdset="0"><size><width>0</width><height>0</height></size></property>
+             </spacer>
+            </item>
            </layout>
          </widget>
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_VISUAL">
-       <attribute name="title">
-        <string>Visualización</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="layout_visual">
-        <item>
-         <widget class="QLabel" name="label_visualDistance">
-          <property name="styleSheet">
-           <string>font-size: 28px; font-weight: bold; color: #70d8c3;</string>
-          </property>
-          <property name="text">
-           <string>Recorrido por encoders: — cm</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_visualTarget">
-          <property name="text">
-           <string>Objetivo recibido: — cm · restante medio: — cm</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_visualState">
-          <property name="text">
-           <string>Sin telemetría de movimiento</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QProgressBar" name="progressBar_distance">
-          <property name="value">
-           <number>0</number>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QTableWidget" name="tableWidget_visual">
-          <property name="editTriggers">
-           <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
-          </property>
-          <property name="rowCount">
-           <number>4</number>
-          </property>
-          <property name="columnCount">
-           <number>8</number>
-          </property>
-          <row />
-          <row />
-          <row />
-          <row />
-          <column>
-           <property name="text">
-            <string>Rueda</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Ticks</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Recorrido (cm)</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Restante (cm)</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>PWM aplicado</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>V objetivo</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>V medida</string>
-           </property>
-          </column>
-          <column>
-           <property name="text">
-            <string>Integral</string>
-           </property>
-          </column>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_visualScale">
-          <property name="text">
-           <string>Calibración: esperando escala y cuentas por vuelta del firmware.</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_visualFreshness">
-          <property name="text">
-           <string>Esperando la primera muestra del firmware.</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_visualNote">
-          <property name="text">
-           <string>Recorrido neto desde el último MOVE, inferido del giro de las ruedas. El promedio no detecta deslizamiento. Llegada confirmada sólo cuando las cuatro ruedas están dentro de tolerancia durante 100 ms.</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_visualPid">
-          <property name="text">
-           <string>Esperando diagnóstico del PID.</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-          <property name="textInteractionFlags">
-           <set>Qt::TextSelectableByMouse</set>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_visualEncoderHealth">
-          <property name="text">
-           <string>Esperando actividad de los canales Hall A/B.</string>
-          </property>
-          <property name="wordWrap">
-           <bool>true</bool>
-          </property>
-          <property name="textInteractionFlags">
-           <set>Qt::TextSelectableByMouse</set>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
+      <widget class="JoystickWidget" name="tab_JOYSTICK"><attribute name="title"><string>Joystick</string></attribute></widget>
      </widget>
     </item>
    </layout>
@@ -997,6 +862,8 @@ QPushButton { padding: 6px 12px; }</string>
  <resources />
  <connections />
  <customwidgets>
+  <customwidget><class>JoystickWidget</class><extends>QWidget</extends><header>joystickwidget.h</header><container>1</container></customwidget>
+  <customwidget><class>RoutePlanWidget</class><extends>QWidget</extends><header>routeplanwidget.h</header><container>1</container></customwidget>
   <customwidget>
    <class>SmartDoubleSpinBox</class>
    <extends>QDoubleSpinBox</extends>

@@ -13,7 +13,10 @@ SOURCES += \
     mainwindow.cpp
 
 HEADERS += \
+    joystickwidget.h \
+    ../firmware/main/pose_kinematics.h \
     mainwindow.h \
+    routeplanwidget.h \
     smartdoublespinbox.h
 
 FORMS += \

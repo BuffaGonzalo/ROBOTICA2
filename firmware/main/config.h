@@ -2,9 +2,15 @@
 #define FLEXIROVER_CONFIG_H
 
 /* Editar antes de cargar el sketch. La PC ejecuta la aplicación Qt de software/. */
+/*
 #define WIFI_SSID       "MEGAFIBRA-2.4G-exN4"
 #define WIFI_PASSWORD   "A43yHNsa"
 #define PC_IP           "192.168.18.4"
+*/
+#define WIFI_SSID       "FIBRA_COOP_B42D"
+#define WIFI_PASSWORD   "QjNAHwrm"
+#define PC_IP           "192.168.1.51"
+
 #define PC_UDP_PORT     30010
 #define ESP_UDP_PORT    30001
 
@@ -27,8 +33,9 @@
 /* Cinematica mecanum, en mm: medir antes de solicitar rotacion.
    l = mitad de distancia entre ejes; w = mitad de distancia entre ruedas.
    Cero significa sin medir (permite traslacion, rechaza rotacion). */
-#define MECANUM_HALF_WHEELBASE_MM 0.0f
-#define MECANUM_HALF_TRACK_MM     0.0f
+// Medidas informadas: entre ejes 95 mm; entre centros izquierda/derecha 210 mm.
+#define MECANUM_HALF_WHEELBASE_MM 47.5f
+#define MECANUM_HALF_TRACK_MM     105.0f
 
 /* FR, FL, RR, RL. Motores: positivo corresponde a avance físico.
    Encoders calibrados con avance: FR/RR ya contaban positivo;
