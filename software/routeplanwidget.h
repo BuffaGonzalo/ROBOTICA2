@@ -102,17 +102,55 @@ public:
             const int count=(i==0 || outbound.steps[i-1].completedCount>0) ? ++completed : 0;
             AvoidanceStep reversed={reflect(step.end),reflect(step.start),reflectHeading(step.endHeading),
                 reflectHeading(step.startHeading),mirror ? step.arcSweep : -step.arcSweep,count,step.detour};
-            // Validate this exact path. Replanning here could silently select
-            // the opposite side of an obstacle and violate the return choice.
-            if(!planning.pathFree(reversed.start,reversed.end,reversed.arcSweep)) {
-                result.valid=false; result.steps.clear();
-                result.error=mirror ? "Camino espejo bloqueado por un obstáculo o fuera del plano. Revisá el mapa."
-                    : "El camino de ida está bloqueado y no se puede recorrer en sentido inverso. Revisá el mapa.";
-                return result;
-            }
             result.steps.append(reversed);
         }
-        return result;
+        const auto blocked=[&]() {
+            AvoidanceRoute failure; failure.valid=false;
+            failure.error=mirror ? "Camino espejo bloqueado: no hay paso seguro por el lado opuesto o un destino queda fuera del espacio libre. Revisá el mapa."
+                : "El camino de ida está bloqueado y no se puede recorrer en sentido inverso. Revisá el mapa.";
+            return failure;
+        };
+        AvoidanceRoute validated;
+        // Keep all reflected user destinations. Only adjust a blocked detour
+        // between them; never let unconstrained replanning choose the old side.
+        for(int begin=0;begin<result.steps.size();) {
+            int end=begin;
+            while(end+1<result.steps.size() && result.steps[end].completedCount==0) ++end;
+            bool free=true;
+            for(int i=begin;i<=end;++i) {
+                const auto &step=result.steps[i];
+                if(!planning.pathFree(step.start,step.end,step.arcSweep)) free=false;
+            }
+            if(free) {
+                for(int i=begin;i<=end;++i) validated.steps.append(result.steps[i]);
+            } else {
+                if(!mirror) return blocked();
+                const auto &first=result.steps[begin]; const auto &last=result.steps[end];
+                auto opposite=planning;
+                opposite.sideOrigin=first.start;
+                opposite.sideDirection=last.end-first.start;
+                const double span=QLineF(first.start,last.end).length();
+                if(span<0.001) return blocked();
+                opposite.sideDirection/=span;
+                double preferredOffset=0;
+                const auto consider=[&](QPointF point) {
+                    const QPointF d=point-first.start;
+                    const double offset=opposite.sideDirection.x()*d.y()-opposite.sideDirection.y()*d.x();
+                    if(std::abs(offset)>std::abs(preferredOffset)) preferredOffset=offset;
+                };
+                for(int i=begin;i<=end;++i) {
+                    const auto &step=result.steps[i]; consider(step.start); consider(step.end);
+                    if(step.arcSweep!=0) consider(arcPoint(step.start,step.end,step.arcSweep,0.5));
+                }
+                if(std::abs(preferredOffset)<0.001) return blocked();
+                opposite.allowedSide=preferredOffset>0 ? 1 : -1;
+                const auto adjusted=opposite.planSegment(first.start,last.end,first.startHeading,last.endHeading,0,last.completedCount);
+                if(!adjusted.valid) return blocked();
+                validated.steps.append(adjusted.steps);
+            }
+            begin=end+1;
+        }
+        return validated;
     }
     AvoidanceRoute plannedRoute(QPointF start,double heading,bool reverse=false) const {
         // Build avoidance only in the outbound direction. Its exact expanded

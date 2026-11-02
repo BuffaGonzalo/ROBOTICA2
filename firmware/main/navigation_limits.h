@@ -5,5 +5,6 @@ namespace NavigationLimits {
 constexpr int ArrivalToleranceTicks=5;
 constexpr double TrackingReserveMm=20.0;
 constexpr double PassThroughMarginMm=60.0;
+constexpr double RouteNodePassThroughMarginMm=10.0;
 }
 #endif

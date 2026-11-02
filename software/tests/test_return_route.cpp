@@ -2,6 +2,9 @@
 #include <QPushButton>
 #include <QFontDatabase>
 #include <QLabel>
+#include <QComboBox>
+#include <QLineEdit>
+#include <QUdpSocket>
 #include "routeplanwidget.h"
 #define private public
 #include "mainwindow.h"
@@ -37,6 +40,21 @@ static void testGeometry() {
         if(reverse.completedCount) check(reverse.completedCount==++completed,"only original destinations count on return");
     }
     check(completed==2,"automatic waypoints do not add stops to the reversed route");
+
+    // An obstacle just 1 cm off the start/end axis makes the literal
+    // reflected avoidance corners touch its opposite clearance boundary.
+    map.safetyDistanceCm=0; map.obstacles={{{-1,64},false,20}}; map.points={{0,140}};
+    const auto shifted=map.plannedRoute({},0);
+    auto shiftedMirror=map.returnRoute(shifted,true);
+    check(shifted.valid && shiftedMirror.valid,"mirror return finds a safe opposite-side path around an off-axis obstacle");
+    check(near(shiftedMirror.steps.first().start,{0,140}) && near(shiftedMirror.steps.last().end,{}),"adjusted mirror keeps the outbound endpoints");
+    for(const auto &step:shiftedMirror.steps) {
+        check(step.start.x()<=1e-6 && step.end.x()<=1e-6,"mirror adjustment never switches back to the outbound side");
+        check(map.planner().pathFree(step.start,step.end,step.arcSweep),"adjusted mirror retains obstacle clearance");
+    }
+    for(int i=1;i<=17;++i) map.obstacles.append({{-1.0-60*i,64},false,20});
+    const auto wall=map.plannedRoute({},0);
+    check(wall.valid && !map.returnRoute(wall,true).valid,"closed opposite side must not silently fall back to the outbound side");
 
     map.obstacles.clear(); map.points={{0,100}}; map.arcSweeps={180}; map.oriented=true; map.headings={90};
     const auto arc=map.plannedRoute({},0);
@@ -83,9 +101,24 @@ int main(int argc,char **argv) {
     map->obstacles={{{0,50},true,5}};
     check(!window.prepareRoute(true) && window.findChild<QLabel *>("label_routeStatus")->text().contains("espejo bloqueado"),"Qt refuses a blocked mirrored return");
     map->obstacles.clear(); map->changed();
+    window.findChild<QComboBox *>("comboBox_protocol")->setCurrentIndex(1);
+    window.findChild<QLineEdit *>("lineEdit_device_ip")->setText("127.0.0.1");
+    window.findChild<QLineEdit *>("lineEdit_device_port")->setText("39001");
+    check(window.udpSocket->bind(QHostAddress::LocalHost,0),"local command transport"); window.updateConnectionUi();
+    map->points={{0,140}}; map->robot={}; map->safetyDistanceCm=0; map->obstacles={{{-1,64},false,20}}; map->changed();
+    window.findChild<QPushButton *>("pushButton_runRoute")->click();
+    check(window.routeActive && window.motionRunning,"actual Execute button starts the off-axis outbound route");
+    window.cancelRoute("test completed outbound"); window.motionRunning=false; map->robot={0,140}; map->changed();
+    mirror->setChecked(true); window.updateCommandUi();
+    window.findChild<QPushButton *>("pushButton_reverseRoute")->click();
+    check(window.routeActive && window.reverseRoute && window.moveAwaitingAck && window.motionRunning,"Espejo plus actual Ruta inversa button sends MOVE instead of refusing the return");
+    for(const auto &step:map->activeRoute.steps) check(step.end.x()<=1e-6 && map->planner().pathFree(step.start,step.end,step.arcSweep),"executed and drawn mirror route use the safe opposite side");
+    check(window.routeLeftUm>0 && window.routeForwardUm<0,"first mirrored MOVE goes left and back from the endpoint");
+    window.cancelRoute("test"); window.motionRunning=false;
+    map->obstacles.clear(); map->points={{-50,0},{-50,50}}; map->robot=map->points.last(); map->changed();
     check(window.prepareRoute(true),"prepare mirror preview for layout verification"); window.cancelRoute("test"); map->showActiveRoute=true;
     window.resize(1100,780); window.show(); app.processEvents();
     check(mirror->isVisible() && mirror->geometry().width()>40,"mirror toggle remains visible in the toolbar");
     window.grab().save("return-mirror.png");
-    std::puts("PASS: exact outbound reversal, mirrored L/arcs/headings, saved avoidance, destination counts, blocked reflection, reset, UI toggle and preview parity");
+    std::puts("PASS: exact outbound reversal, mirrored L/arcs/headings, off-axis obstacle adjustment on opposite side, blocked-side rejection, actual return-button MOVE, saved avoidance and reset");
 }

@@ -32,9 +32,15 @@ class ObstaclePlanner {
 public:
     QList<MapObstacle> obstacles;
     double robotLength=30,robotWidth=19.8,safetyDistance=10,reserve=(NavigationLimits::PassThroughMarginMm+NavigationLimits::TrackingReserveMm)/10;
+    // Optional half-plane for a mirrored avoidance adjustment. Visibility
+    // edges stay in it because a half-plane is convex. Normal planning is free.
+    QPointF sideOrigin,sideDirection;
+    int allowedSide=0;
     double clearance() const { return std::hypot(robotLength,robotWidth)/2+safetyDistance+reserve; }
     bool pointFree(QPointF point,double extra=0) const {
         if(std::abs(point.x())>1000 || std::abs(point.y())>1000) return false;
+        const QPointF sideDelta=point-sideOrigin;
+        if(allowedSide*(sideDirection.x()*sideDelta.y()-sideDirection.y()*sideDelta.x()) < -1e-7) return false;
         for(const auto &o:obstacles) {
             const double extent=o.sizeCm/2+clearance()+extra;
             const QPointF d=point-o.center;
@@ -142,7 +148,7 @@ public:
     }
     AvoidanceRoute planSegment(QPointF start,QPointF end,double fromHeading,double toHeading,double sweep,int completed) const {
         AvoidanceRoute result;
-        if(obstacles.isEmpty() || pathFree(start,end,sweep)) {
+        if((obstacles.isEmpty() && !allowedSide) || pathFree(start,end,sweep)) {
             result.steps.append({start,end,fromHeading,toHeading,sweep,completed,false}); return result;
         }
         const auto path=findPath(start,end);

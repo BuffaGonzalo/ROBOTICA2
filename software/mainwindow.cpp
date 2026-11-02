@@ -778,7 +778,11 @@ bool MainWindow::prepareRoute(bool reverse)
     } else {
         plan=ui->routePlan->plannedRoute(start,ui->routePlan->robotHeadingDeg);
     }
-    if(!plan.valid) { ui->label_routeStatus->setText(plan.error); log(plan.error,true); return false; }
+    if(!plan.valid) {
+        ui->label_routeStatus->setText(plan.error); log(plan.error,true);
+        showTopStatus(reverse && ui->pushButton_mirrorRoute->isChecked() ? "No se pudo iniciar la vuelta espejo" : "No se pudo iniciar la ruta");
+        return false;
+    }
     if(!reverse) { outboundRoute=plan; outboundRouteKey=key; }
     executionTargets.clear(); executionHeadings.clear(); executionArcSweeps.clear(); executionCompletedCounts.clear();
     for(const auto &step:plan.steps) {
@@ -1132,8 +1136,9 @@ void MainWindow::processFrames(QByteArray &buffer, const QString &transport)
                 else if(state==0 && topEvent!="Ruta terminada") topEvent="Esperando telemetría";
             }
             showTopStatus();
-            const bool routeSample=routeAck && mode==mapMode && hasVectorStatus && generationMatches && forward==routeForwardUm && left==routeLeftUm
+            const bool routeMotionMatches=mode==mapMode && hasVectorStatus && generationMatches && forward==routeForwardUm && left==routeLeftUm
                 && (mapMode<5 || (hasPoseStatus && requestedTurn==routeTurnUrad)) && (mapMode!=7 || requestedArc==routeArcSweepUrad);
+            const bool routeSample=routeAck && routeMotionMatches;
             if(!routeActive && !mapTracking && !mapReset && state==1) armMapMovement(mode);
             if(mapTracking && mode==mapMode && ((!routeActive && (!routePaused || generationMatches)) || routeSample)) {
                 QPointF displacement;
@@ -1164,17 +1169,20 @@ void MainWindow::processFrames(QByteArray &buffer, const QString &transport)
                     .arg(ui->routePlan->robot.x(),0,'f',2).arg(ui->routePlan->robot.y(),0,'f',2));
             }
             if(routeActive) {
-                if(state>=3) cancelRoute("Ruta interrumpida: "+status);
+                if(state>=3 && (!hasVectorStatus || routeMotionMatches)) cancelRoute("Ruta interrumpida: "+status);
                 else if(routeSample) {
                     routeLastSampleMs=QDateTime::currentMSecsSinceEpoch();
                     if(state==1) routeSeenRunning=true;
-                    const bool currentIsIntermediate = (routeIndex < executionCompletedCounts.size() && executionCompletedCounts[routeIndex] == 0);
+                    const bool automaticWaypoint=routeIndex<executionCompletedCounts.size() && executionCompletedCounts[routeIndex]==0;
+                    const bool currentIsIntermediate=automaticWaypoint || routeIndex+1<executionTargets.size();
                     const double remainingDist = QLineF(ui->routePlan->robot, plannedLegEnd).length();
                     const double legTotalDist = QLineF(mapOrigin, plannedLegEnd).length();
-                    const double arrivalMargin = NavigationLimits::PassThroughMarginMm / 10.0;
+                    const double arrivalMargin=(automaticWaypoint ? NavigationLimits::PassThroughMarginMm
+                        : NavigationLimits::RouteNodePassThroughMarginMm)/10.0;
                     const double threshold = qMin(arrivalMargin, legTotalDist > 0.1 ? legTotalDist * 0.25 : arrivalMargin);
 
                     if(state==1 && routeSeenRunning && currentIsIntermediate && remainingDist <= threshold
+                       && (mapMode!=7 || mapArcProgress>=0.9)
                        && (!routeOriented || std::abs(std::remainder(ui->routePlan->robotHeadingDeg - executionHeadings[routeIndex], 360.0)) <= 5.0)) {
                         if(routeIndex<executionTargets.size() && QLineF(plannedLegEnd,executionTargets[routeIndex]).length()<0.05
                             && (!routeOriented || std::abs(std::remainder(plannedLegHeadingDeg-executionHeadings[routeIndex],360.0))<0.1)) {
@@ -1191,7 +1199,7 @@ void MainWindow::processFrames(QByteArray &buffer, const QString &transport)
                     } else if(state==2 && (routeSeenRunning || hasVectorStatus)) {
                         mapLimitsPending=mapLimitsDirty=false;
                         mapSpeedAckTimer->stop(); mapSpeedSendTimer->stop();
-                        const bool wasIntermediate = (routeIndex < executionCompletedCounts.size() && executionCompletedCounts[routeIndex] == 0);
+                        const bool wasIntermediate=currentIsIntermediate;
                         // ARRIVED accepts the firmware's arrival margin. Consume
                         // that target explicitly, then plan from the measured pose
                         // so the residual does not accumulate between setpoints.
