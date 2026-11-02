@@ -6,10 +6,15 @@
 #define WIFI_SSID       "MEGAFIBRA-2.4G-exN4"
 #define WIFI_PASSWORD   "A43yHNsa"
 #define PC_IP           "192.168.18.4"
-*/
+
 #define WIFI_SSID       "FIBRA_COOP_B42D"
 #define WIFI_PASSWORD   "QjNAHwrm"
 #define PC_IP           "192.168.1.51"
+*/
+
+#define WIFI_SSID       "LabPrototip"
+#define WIFI_PASSWORD   "labproto"
+#define PC_IP           "172.24.150.142"
 
 #define PC_UDP_PORT     30010
 #define ESP_UDP_PORT    30001
@@ -29,6 +34,11 @@
    Valor común provisional; confirmar el mismo conteo en FR, FL, RR y RL.
    No multiplicar nuevamente por 56 ni por 4: la medición ya los incluye. */
 #define ENCODER_TICKS_PER_WHEEL_REV 1500.0
+
+/* Ajuste provisional de distancia bajo carga: Qt indicó 49,95 cm y se
+   midieron aproximadamente 50,5 cm. Escala = distancia real / indicada.
+   Conserva las 1500 cuentas medidas por vuelta y el diámetro geométrico. */
+#define WHEEL_TRAVEL_SCALE (50.5 / 49.95)
 
 /* Cinematica mecanum, en mm: medir antes de solicitar rotacion.
    l = mitad de distancia entre ejes; w = mitad de distancia entre ruedas.

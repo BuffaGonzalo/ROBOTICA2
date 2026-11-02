@@ -28,6 +28,7 @@ uint8_t RobotCommands_Handle(const _sComm *frame, uint32_t now_ms) {
         if(result==ACK) moving=0;
         return result;
     }
+    if(id==SETLIMITS) return motion_command ? motion_command(frame,now_ms) : NACK;
     if (id != SETPWM) return 0; /* No hay comandos históricos. */
     if (frame->frameLength != 10 || !apply_pwm) return NACK;
     for (i = 0; i < 4; ++i) {

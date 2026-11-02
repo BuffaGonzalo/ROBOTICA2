@@ -107,7 +107,7 @@ void FlexiLink_Task(uint32_t now_ms) {
                 pc_seen = 1;
                 last_pc_alive_ms = now_ms;
             }
-        } else if (status && (id == SETPWM || id == MOVE || id == STOP || id == SETGAINS)) {
+        } else if (status && (id == SETPWM || id == MOVE || id == STOP || id == SETGAINS || id == SETLIMITS)) {
             pwm_reply_pending = 1;
             extra_reply_id = id;
             pwm_reply_status = status;

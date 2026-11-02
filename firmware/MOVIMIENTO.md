@@ -1,8 +1,12 @@
+## Corrección de escala por distancia física
+
+Se reportaron 49,95 cm indicados frente a aproximadamente 50,5 cm reales. `WHEEL_TRAVEL_SCALE` en `main/config.h` aplica el factor provisional `50.5/49.95` a los milímetros por tick, tanto al calcular objetivos como al integrar posición y enviar telemetría. Para 50 cm se solicitan 2930 ticks en lugar de 2962. Se mantienen las cuentas por vuelta medidas y la tolerancia de 5 ticks. Requiere compilar/cargar el firmware y validar varias repeticiones en avance y retroceso; el factor no elimina variaciones por deslizamiento.
+
 ## Corrección actual de frenado y sobrepaso
 
 La salida lógica PWM=0 acciona freno activo en Model Y/PT5126: IN1=IN2=HIGH y EN/PWM=255, tanto por rueda como al parar todas. La integral de velocidad queda limitada a ±50 unidades PWM, con integración condicional que no aumenta una saturación. Al cambiar el signo del error de posición se borran integral y referencia de velocidad y se frena esa rueda durante el ciclo, sin reintegrar inmediatamente. Dentro de ±5 ticks se borran esos acumuladores y se mantiene freno activo. La confirmación global ARRIVED sigue requiriendo 100 ms con las cuatro ruedas en banda. Qt muestra la tolerancia actual de 5 ticks.
 
-Las potencias iniciales para movimiento en Qt son FR=70, FL=70, RR=75, RL=85; el PWM de testeo sigue en cero. El sketch ASCII también usa límite integral 50 y reinicio por cambio de signo. Las pruebas host verifican las lógicas y los pines del freno; la distancia real de frenado requiere verificación física y compilación/carga AVR.
+Las potencias iniciales para movimiento en Qt son límites máximos FR=170, FL=170, RR=175, RL=185; el PWM de testeo sigue en cero. El sketch ASCII también usa límite integral 50 y reinicio por cambio de signo. Las pruebas host verifican las lógicas y los pines del freno; la distancia real de frenado requiere verificación física y compilación/carga AVR.
 
 ## Ajustes PID desde Qt
 
@@ -14,7 +18,7 @@ Las potencias de las ruedas y la distancia siguen en sus campos separados. La ba
 
 Se restauró el modo anterior de aceleración y frenado: P de posición, sincronismo entre ruedas, rampa de velocidad deseada de 3000 ticks/s² y PI de velocidad por rueda. Al aceptar MOVE las salidas empiezan en cero y el lazo de 10 ms construye la rampa; la velocidad deseada disminuye con el error de posición al acercarse al objetivo. La compensación de zona muerta vuelve a FR=57, FL/RR/RL=45.
 
-Las cuatro potencias de Qt vuelven a ser **límites máximos independientes de PWM**, respetados incluso al sumar la zona muerta. No se aplican como potencia fija. Se conservan la consigna en centímetros enteros, conversión y escala, límites de tiempo, paro por falta de progreso, protección de enlace, signos de encoder calibrados y botón Parada. ARRIVED vuelve a exigir las cuatro ruedas dentro de ±3 ticks durante 100 ms consecutivos; una rueda puede corregirse si sobrepasa o sale de tolerancia. El corte enclavado de potencia bruta ya no se utiliza.
+Las cuatro potencias de Qt vuelven a ser **límites máximos independientes de PWM**, respetados incluso al sumar la zona muerta. No se aplican como potencia fija. Se conservan la consigna en centímetros enteros, conversión y escala, límites de tiempo, paro por falta de progreso, protección de enlace, signos de encoder calibrados y botón Parada. ARRIVED exige un error final de hasta ±5 ticks por rueda (menor en consignas cortas), confirmado tras 100 ms de frenado. Las ruedas quedan enclavadas al entrar en banda o cruzar el objetivo; si al confirmar quedaron fuera de tolerancia se informa OVERSHOOT. Los destinos rectos y de arco usan la distancia equivalente a 5 ticks para el error XY; se eliminó la aceptación anticipada a 30 mm. Los puntos automáticos de evasión conservan un margen de paso independiente para enlazar sin parar.
 
 Las secciones del modo directo que siguen documentan el comportamiento anterior, sustituido por esta restauración. Las pruebas simulan avance y retroceso, aceleración limitada, reducción de la consigna de velocidad cerca del objetivo, límites por rueda y llegada dentro de tolerancia; no equivalen a calibración física.
 

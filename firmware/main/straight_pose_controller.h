@@ -10,8 +10,17 @@ struct StraightPoseController {
     double halfWheelbase=0,halfTrack=0;
     double arcSweep=0;
     float progress=0,phaseSpeed=0,boundTicks=1;
+    bool passThrough=false;
+    uint32_t waypointSince=0;
     uint32_t wrongDirectionSince[4]={};
-    void start(MotionController &c,PoseKinematics::Motion target,double l,double w,uint32_t now,const uint8_t *limits,double sweep=0) {
+    void start(MotionController &c,PoseKinematics::Motion target,double l,double w,uint32_t now,const uint8_t *limits,double sweep=0,bool through=false,bool blend=false) {
+        float oldVelocity[4],oldIntegral[4],oldDemand[4]; int16_t oldPwm[4];
+        const float oldSpeed=phaseSpeed*boundTicks;
+        for(uint8_t i=0;i<4;++i) {
+            oldVelocity[i]=c.velocity[i]; oldIntegral[i]=c.integral[i];
+            oldDemand[i]=c.demand[i]; oldPwm[i]=c.pwm[i];
+        }
+        passThrough=through; waypointSince=0;
         endpoint=target; halfWheelbase=l; halfTrack=w;
         arcSweep=sweep;
         progress=phaseSpeed=0;
@@ -19,6 +28,13 @@ struct StraightPoseController {
         boundTicks=(sqrt(2.0)*PoseKinematics::arcLength(target,sweep)+(l+w)*fabs(target.turn))*TICKS_PER_MM;
         if(boundTicks<1) boundTicks=1;
         c.startWithLimits((int32_t)ceil(boundTicks),now,limits);
+        if(blend) {
+            phaseSpeed=fmin(oldSpeed,MAX_TICKS_S)/boundTicks;
+            for(uint8_t i=0;i<4;++i) {
+                c.velocity[i]=oldVelocity[i]; c.integral[i]=oldIntegral[i]; c.demand[i]=oldDemand[i];
+                c.pwm[i]=(int16_t)bounded(oldPwm[i],-limits[i],limits[i]);
+            }
+        }
         for(uint8_t i=0;i<4;++i) wrongDirectionSince[i]=0;
     }
     void update(MotionController &c,const int32_t *counts,const PoseKinematics::Pose &pose,uint32_t now) {
@@ -29,16 +45,21 @@ struct StraightPoseController {
         c.last=now;
         if((uint32_t)(now-c.heartbeat)>3000) { c.stop(LINK_LOST); return; }
         if((uint32_t)(now-c.started)>c.moveBudgetMs) { c.stop(MOVE_TIMEOUT); return; }
+        const double length=PoseKinematics::arcLength(endpoint,arcSweep);
+        const double positionMargin=length>0 ? fmin(ROUTE_ARRIVAL_MARGIN_MM,length/4) : ROUTE_ARRIVAL_MARGIN_MM;
+        const double angularMargin=fabs(endpoint.turn)>0 ? fmin(ROUTE_ARRIVAL_ANGLE_RAD,fabs(endpoint.turn)/4) : ROUTE_ARRIVAL_ANGLE_RAD;
+        const bool inside=(arcSweep==0 || progress>=0.9f) && hypot(endpoint.forward-pose.forward,endpoint.left-pose.left)<=positionMargin
+            && fabs(endpoint.turn-pose.heading)<=angularMargin;
         if(c.settling) {
             for(uint8_t i=0;i<4;++i) c.pwm[i]=0;
-            if((uint32_t)(now-c.settledSince)>=100) c.stop(ARRIVED);
+            if((uint32_t)(now-c.settledSince)>=100) c.stop(inside ? ARRIVED : OVERSHOOT);
             return;
         }
-        const double length=PoseKinematics::arcLength(endpoint,arcSweep);
-        const double positionMargin=length>0 ? fmin(10.0,length/4) : 10.0; // mm
-        const double angularMargin=fabs(endpoint.turn)>0 ? fmin(3*PoseKinematics::POSE_PI/180,fabs(endpoint.turn)/4) : 3*PoseKinematics::POSE_PI/180;
-        if((arcSweep==0 || progress>=0.9f) && hypot(endpoint.forward-pose.forward,endpoint.left-pose.left)<=positionMargin
-            && fabs(endpoint.turn-pose.heading)<=angularMargin) {
+        // Give Qt a telemetry period to replace an internal waypoint. If no
+        // successor arrives, keep the reference bounded at the endpoint and stop.
+        if(inside && !waypointSince) waypointSince=now;
+        if(!inside) waypointSince=0;
+        if(inside && (!passThrough || (uint32_t)(now-waypointSince)>=300u)) {
             c.settling=true; c.settledSince=now; c.arrivedMask=15;
             for(uint8_t i=0;i<4;++i) { c.pwm[i]=0; c.integral[i]=c.demand[i]=0; }
             return;
@@ -46,7 +67,8 @@ struct StraightPoseController {
         const float dt=elapsed/1000.0f;
         const float acceleration=ACCEL_TICKS_S2/boundTicks;
         const float remaining=1-progress;
-        const float targetSpeed=fmin(MAX_TICKS_S/boundTicks,sqrt(2*acceleration*(remaining>0 ? remaining : 0)));
+        const float targetSpeed=passThrough ? MAX_TICKS_S/boundTicks
+            : fmin(MAX_TICKS_S/boundTicks,sqrt(2*acceleration*(remaining>0 ? remaining : 0)));
         phaseSpeed+=bounded(targetSpeed-phaseSpeed,-acceleration*dt,acceleration*dt);
         float next=bounded(progress+phaseSpeed*dt,0,1);
         // Keep the reference close to the measured robot when power saturates.

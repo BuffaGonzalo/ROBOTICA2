@@ -13,6 +13,7 @@ typedef enum {
     STOP = 0xD1,
     MOTION_STATUS = 0xD2,
     SETGAINS = 0xD4,
+    SETLIMITS = 0xD5,
     NACK = 0x0E
 } _eCmd;
 

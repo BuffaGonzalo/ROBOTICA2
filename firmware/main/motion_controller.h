@@ -4,6 +4,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include "config.h"
+#include "navigation_limits.h"
 
 constexpr double PPR_MOTOR = 11.0;
 constexpr double GEAR_RATIO = 56.0;
@@ -11,9 +12,15 @@ constexpr double WHEEL_DIAMETER_MM = 80.59;
 constexpr double NOMINAL_TICKS_PER_REV = PPR_MOTOR * GEAR_RATIO * 4.0;
 constexpr double TICKS_PER_REV = ENCODER_TICKS_PER_WHEEL_REV;
 static_assert(TICKS_PER_REV>0 && TICKS_PER_REV<=1000000,"Invalid wheel encoder calibration");
-constexpr double TICKS_PER_MM = TICKS_PER_REV / (3.14159265358979323846 * WHEEL_DIAMETER_MM);
-constexpr double ARRIVAL_TOLERANCE_MM = 5.0;
-constexpr int32_t ARRIVAL_TOLERANCE_TICKS = (int32_t)(ARRIVAL_TOLERANCE_MM*TICKS_PER_MM+0.5);
+static_assert(WHEEL_TRAVEL_SCALE>0 && WHEEL_TRAVEL_SCALE<=10,"Invalid wheel travel scale");
+// Use the same calibrated conversion for goals, odometry and telemetry.
+constexpr double TICKS_PER_MM = TICKS_PER_REV / (3.14159265358979323846 * WHEEL_DIAMETER_MM * WHEEL_TRAVEL_SCALE);
+constexpr int32_t ARRIVAL_TOLERANCE_TICKS = NavigationLimits::ArrivalToleranceTicks;
+constexpr double ARRIVAL_TOLERANCE_MM = ARRIVAL_TOLERANCE_TICKS/TICKS_PER_MM;
+// Final route destinations use the same narrow encoder-derived tolerance.
+// Automatic detour handoffs have a separate margin in NavigationLimits.
+constexpr double ROUTE_ARRIVAL_MARGIN_MM = ARRIVAL_TOLERANCE_MM;
+constexpr double ROUTE_ARRIVAL_ANGLE_RAD = 5.0*3.14159265358979323846/180.0;
 // Wire: signed micrometres (0.001 mm). Limit keeps arithmetic and run time bounded.
 constexpr int32_t MAX_DISTANCE_UM = 10000000L;
 constexpr int PWM_LIMIT = 185;
@@ -132,7 +139,7 @@ struct MotionController {
         if ((uint32_t)(now-started)>moveBudgetMs) { stop(MOVE_TIMEOUT); return; }
         float dt=elapsed*0.001f, mean=0;
         float phaseWeight=0;
-        bool inside=true;
+        bool inside=true,withinTolerance=true;
         bool crossed[4]={};
         for(uint8_t i=0;i<4;++i) {
             position[i]=counts[i];
@@ -145,6 +152,7 @@ struct MotionController {
             const int32_t goal=wheelTargets[i];
             const int32_t oldError=goal-previous[i];
             const int32_t newError=goal-counts[i];
+            if(labs(newError)>arrivalToleranceTicks(i)) withinTolerance=false;
             crossed[i]=(oldError>0 && newError<0) || (oldError<0 && newError>0);
             // Enclavar llegada por rueda: no volver a energizarla para corregir
             // pequeños residuos ni invertir el giro al cruzar el objetivo.
@@ -167,7 +175,7 @@ struct MotionController {
         if(inside) {
             for(uint8_t i=0;i<4;++i) { pwm[i]=0; integral[i]=demand[i]=0; }
             if(!settling) { settling=true; settledSince=now; }
-            if((uint32_t)(now-settledSince)>=100) stop(ARRIVED);
+            if((uint32_t)(now-settledSince)>=100) stop(withinTolerance ? ARRIVED : OVERSHOOT);
             return;
         }
         settling=false;

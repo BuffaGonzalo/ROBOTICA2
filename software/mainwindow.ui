@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>OSOYOO Robot App - Robotica 2</string>
+   <string>App Robot Osoyoo - Robotica 2</string>
   </property>
   <property name="styleSheet">
    <string notr="true">QMainWindow, QWidget { background: #101725; color: #e4ebf4; font-size: 13px; }
@@ -109,17 +109,19 @@ QDoubleSpinBox::down-arrow, SmartDoubleSpinBox::down-arrow { image: url(:/resour
       <widget class="QWidget" name="tab_MAIN">
        <attribute name="title"><string>Visualización</string></attribute>
        <layout class="QVBoxLayout" name="layout_mainPlan" stretch="0,1,0">
-        <item><layout class="QHBoxLayout" name="layout_routeControls">
+        <item><widget class="QWidget" name="routeControls"><property name="styleSheet"><string>QPushButton { padding: 9px 8px; }</string></property><layout class="QHBoxLayout" name="layout_routeControls"><property name="leftMargin"><number>0</number></property><property name="topMargin"><number>0</number></property><property name="rightMargin"><number>0</number></property><property name="bottomMargin"><number>0</number></property>
          <item><widget class="QPushButton" name="pushButton_runRoute"><property name="text"><string>Ejecutar ruta</string></property></widget></item>
-         <item><widget class="QPushButton" name="pushButton_reverseRoute"><property name="text"><string>Ruta inversa</string></property><property name="toolTip"><string>Desde el extremo final, recorre los setpoints en orden inverso hasta el origen. Conserva la ruta dibujada.</string></property></widget></item>
-         <item><widget class="QPushButton" name="pushButton_routeOrientation"><property name="text"><string>Orientación</string></property><property name="checkable"><bool>true</bool></property><property name="toolTip"><string>Activa los ángulos de llegada manteniendo el recorrido recto. Arrastrá las flechas para orientar o hacé doble clic en un setpoint para editar X, Y y ángulo. Margen de llegada: hasta 1 cm y 3°.</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_reverseRoute"><property name="text"><string>Ruta inversa</string></property><property name="toolTip"><string>Vuelve por el mismo camino de ida en sentido contrario, incluidos los desvíos y arcos. Con Espejo activado, refleja ese camino al lado opuesto.</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_mirrorRoute"><property name="text"><string>Espejo</string></property><property name="checkable"><bool>true</bool></property><property name="toolTip"><string>Activado: Ruta inversa vuelve por el reflejo del camino de ida respecto de la línea entre inicio y final. Desactivado: vuelve por el mismo camino. No se permite un camino espejo que cruce obstáculos.</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_routeOrientation"><property name="text"><string>Orientación</string></property><property name="checkable"><bool>true</bool></property><property name="toolTip"><string>Activa los ángulos de llegada manteniendo el recorrido recto. Arrastrá las flechas para orientar o hacé doble clic en un setpoint para editar X, Y y ángulo. Tolerancia final de posición: equivalente a 5 ticks de encoder (aprox. 0,85 mm con la calibración actual) y hasta 5°.</string></property></widget></item>
          <item><widget class="QPushButton" name="pushButton_resumeRoute"><property name="text"><string>Continuar ruta</string></property><property name="toolTip"><string>Retoma la ruta detenida por Parada desde la última posición estimada confirmada por el robot.</string></property></widget></item>
          <item><widget class="QPushButton" name="pushButton_routeArc"><property name="text"><string>Arco</string></property><property name="checkable"><bool>true</bool></property><property name="toolTip"><string>Los nuevos setpoints crean arcos de 180°. Clic en un setpoint para editar X, Y, orientación, ángulo y sentido del arco. Desactivar vuelve a crear rectas.</string></property></widget></item>
+         <item><widget class="QPushButton" name="pushButton_obstacles"><property name="text"><string>Obstáculos</string></property><property name="checkable"><bool>true</bool></property><property name="toolTip"><string>Clic en el plano: añadir obstáculo. Derecho: eliminar. Doble clic: editar forma, tamaño y seguridad. Hasta 50 obstáculos. La ruta evita sus zonas de seguridad.</string></property></widget></item>
          <item><widget class="QPushButton" name="pushButton_clearRoute"><property name="text"><string>Borrar puntos</string></property></widget></item>
          <item><widget class="QPushButton" name="pushButton_resetMap"><property name="text"><string>Reset</string></property><property name="toolTip"><string>Vuelve la posición y el recorrido mostrado a cero, sin borrar la ruta. No mueve físicamente el robot.</string></property></widget></item>
          <item><widget class="QPushButton" name="pushButton_importRoute"><property name="text"><string>Importar</string></property><property name="toolTip"><string>Reemplaza la ruta por los puntos de un archivo JSON válido.</string></property></widget></item>
          <item><widget class="QPushButton" name="pushButton_exportRoute"><property name="text"><string>Exportar</string></property><property name="toolTip"><string>Guarda los puntos de la ruta y la orientación del plano en un archivo JSON.</string></property></widget></item>
-        </layout></item>
+        </layout></widget></item>
         <item><widget class="RoutePlanWidget" name="routePlan"/></item>
         <item><widget class="QLabel" name="label_routeStatus"><property name="text"><string>Robot en (0, 0) cm. Esta pestaña trabaja con setpoints XY: clic izquierdo añade o arrastra; derecho elimina.</string></property><property name="wordWrap"><bool>true</bool></property></widget></item>
        </layout>

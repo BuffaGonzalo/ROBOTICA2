@@ -23,6 +23,26 @@ int main(int argc,char **argv) {
     MainWindow window;
     auto *plan=static_cast<RoutePlanWidget *>(window.findChild<QWidget *>("routePlan"));
     auto *toggle=window.findChild<QPushButton *>("pushButton_routeOrientation");
+    check(window.windowTitle()=="App Robot Osoyoo - Robotica 2","requested main window title");
+    bool axesOpened=false;
+    QTimer::singleShot(0,[&]() {
+        auto *editor=qobject_cast<QDialog *>(QApplication::activeModalWidget()); if(!editor) return;
+        auto *angle=editor->findChild<QDoubleSpinBox *>("axesRotation"); if(!angle) { editor->reject(); return; }
+        axesOpened=true; angle->setValue(45.5); editor->grab().save("axes-editor.png"); editor->accept();
+    });
+    const QPointF axesAt(78,78);
+    QMouseEvent axesClick(QEvent::MouseButtonDblClick,axesAt,axesAt,Qt::LeftButton,Qt::LeftButton,Qt::NoModifier);
+    QApplication::sendEvent(plan,&axesClick);
+    check(axesOpened && plan->frameRotationDeg==45.5 && plan->points.isEmpty(),"double click on axes edits frame rotation without creating a point");
+    QTimer::singleShot(0,[&]() {
+        auto *editor=qobject_cast<QDialog *>(QApplication::activeModalWidget()); if(!editor) return;
+        editor->findChild<QDoubleSpinBox *>("axesRotation")->setValue(-90); editor->reject();
+    });
+    QApplication::sendEvent(plan,&axesClick);
+    check(plan->frameRotationDeg==45.5,"cancel keeps previous axes rotation");
+    plan->orientationEditable=false; QApplication::sendEvent(plan,&axesClick);
+    check(!QApplication::activeModalWidget() && plan->frameRotationDeg==45.5,"axes editing remains locked during motion");
+    plan->orientationEditable=true; plan->frameRotationDeg=0;
     check(toggle && toggle->isCheckable() && !toggle->isChecked(),"orientation is optional");
     plan->points={{0,100}}; plan->setHeading(0,90); toggle->click();
     check(plan->oriented && plan->headingAt(0)==90,"enable and edit arrival angle");
@@ -102,12 +122,12 @@ int main(int argc,char **argv) {
     accepted=frame(QByteArray::fromHex("d00d")); window.processFrames(accepted,"Test");
     status.fill('\0'); status[0]=char(0xD2); status[1]=char(2); status[93]=char(6);
     qToLittleEndian<qint32>(window.routeForwardUm,status.data()+94); qToLittleEndian<qint32>(window.routeLeftUm,status.data()+98);
-    qToLittleEndian<qint32>(992000,status.data()+102); qToLittleEndian<quint16>(window.expectedGeneration,status.data()+110);
-    qToLittleEndian<qint32>(window.routeTurnUrad,status.data()+112); qToLittleEndian<qint32>(1535890,status.data()+116);
+    qToLittleEndian<qint32>(975000,status.data()+102); qToLittleEndian<quint16>(window.expectedGeneration,status.data()+110);
+    qToLittleEndian<qint32>(window.routeTurnUrad,status.data()+112); qToLittleEndian<qint32>(1500983,status.data()+116);
     telemetry=frame(status); window.processFrames(telemetry,"Test");
-    check(window.routeIndex==1 && plan->completed==1 && std::abs(window.plannedPosition.y()-99.2)<0.001,"arrival margin consumes target and records measured pose");
+    check(window.routeIndex==1 && plan->completed==1 && std::abs(window.plannedPosition.y()-97.5)<0.001,"arrival margin consumes target and records measured pose");
     window.routePauseTimer->stop(); window.nextRouteLeg();
-    check(window.routeActive && window.routeIndex==1 && std::abs(window.routeExpectedUm-1008000)<=1,"next target starts from measured position");
+    check(window.routeActive && window.routeIndex==1 && std::abs(window.routeExpectedUm-1025000)<=1,"next target starts from measured position");
     window.cancelRoute("Fin de prueba"); window.motionRunning=false; window.mapTracking=false; window.updateCommandUi();
     plan->points={{30,40},{100,90}}; plan->headings={45,-90}; plan->selectedIndex=1;
     window.resize(1200,780); window.show(); app.processEvents();

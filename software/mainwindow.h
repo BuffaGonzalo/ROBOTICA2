@@ -9,6 +9,7 @@
 #include <QSerialPort>
 #include <QUdpSocket>
 #include <QTimer>
+#include "obstacleplanner.h"
 #include <QPointF>
 
 QT_BEGIN_NAMESPACE
@@ -38,6 +39,12 @@ private:
     void processFrames(QByteArray &buffer, const QString &transport);
     void sendSelectedCommand();
     void driveJoystick(int forward,int left);
+    void setMapSpeed(int percent);
+    void syncMapSpeedFromConfiguration();
+    void sendMapSpeedLimits();
+    int mapMotorCalibration[4]={170,170,175,185};
+    bool syncingMapSpeed=false,mapLimitsDirty=false,mapLimitsPending=false,moveAwaitingAck=false;
+    QTimer *mapSpeedSendTimer=nullptr,*mapSpeedAckTimer=nullptr;
     JoystickWidget *joystick=nullptr;
     bool joystickDriving=false;
     QByteArray joystickPayload;
@@ -51,11 +58,15 @@ private:
     void exportLogXls();
     bool udpPeer(QHostAddress &address, quint16 &port) const;
     void startRoute();
+    bool prepareRoute(bool reverse);
+    AvoidanceRoute outboundRoute;
+    QByteArray outboundRouteKey;
+    void advanceRouteTarget();
     bool importRouteFile(const QString &path, QString &error);
     bool exportRouteFile(const QString &path, QString &error) const;
     void startReverseRoute();
     void resumeRoute();
-    void nextRouteLeg();
+    void nextRouteLeg(bool continuous=false);
     void cancelRoute(const QString &reason);
     void armMapMovement(int mode);
     void showTopStatus(const QString &event=QString());
@@ -69,6 +80,7 @@ private:
     QList<QPointF> executionTargets;
     QList<double> executionHeadings;
     QList<double> executionArcSweeps;
+    QList<int> executionCompletedCounts;
     qint32 routeArcSweepUrad=0;
     double mapArcProgress=0;
     bool routeOriented=false;

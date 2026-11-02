@@ -98,6 +98,21 @@ void Motion_Init(void (*apply)(const int16_t *)) {
 }
 uint8_t Motion_Command(const _sComm *frame, uint32_t now) {
     uint8_t id=frame->buff[frame->indexData];
+    if(id==SETLIMITS) {
+        if(frame->frameLength!=6 || controller.state!=RUNNING) return NACK;
+        uint8_t limits[4];
+        for(uint8_t i=0;i<4;++i) {
+            limits[i]=frame->buff[(frame->indexData+1+i)&frame->mask];
+            if((controller.activeMask&(1u<<i)) && !limits[i]) return NACK;
+        }
+        int16_t output[4];
+        for(uint8_t i=0;i<4;++i) {
+            controller.pwmLimit[i]=(controller.activeMask&(1u<<i)) ? limits[i] : 0;
+            controller.pwm[i]=(int16_t)bounded(controller.pwm[i],-controller.pwmLimit[i],controller.pwmLimit[i]);
+            output[i]=controller.pwm[i]*travelSign(i);
+        }
+        applyMotor(output); return ACK;
+    }
     if(id==SETGAINS) {
         if(frame->frameLength!=18) return NACK;
         static_assert(sizeof(float)==4,"SETGAINS requires float32");
@@ -120,9 +135,12 @@ uint8_t Motion_Command(const _sComm *frame, uint32_t now) {
         if(frame->frameLength!=2) return NACK;
         cancellation=1; controller.requestStop(); applyMotor(controller.pwm); return ACK;
     }
-    if(id==MOVE && (frame->frameLength==14 || frame->frameLength==18 || frame->frameLength==19 || frame->frameLength==23)) {
+    if(id==MOVE && (frame->frameLength==14 || frame->frameLength==18 || frame->frameLength==19 || frame->frameLength==20 || frame->frameLength==23)) {
         const bool arc=frame->frameLength==23;
-        const bool straight=frame->frameLength==19 || arc;
+        const bool continuous=frame->frameLength==20;
+        const uint8_t flags=continuous ? frame->buff[(frame->indexData+18)&frame->mask] : 0;
+        if(flags&~3u) return NACK;
+        const bool straight=frame->frameLength==19 || continuous || arc;
         if(straight && frame->buff[(frame->indexData+17)&frame->mask]!=(arc ? 7 : 6)) return NACK;
         int32_t sweep=0;
         if(arc) {
@@ -162,7 +180,9 @@ uint8_t Motion_Command(const _sComm *frame, uint32_t now) {
             limits[i]=frame->buff[(frame->indexData+9+i)&frame->mask];
             if((straight || goals[i]) && !limits[i]) return NACK;
         }
-        controller.stop(STOPPED); applyMotor(controller.pwm);
+        const bool blend=continuous && (flags&2u) && motionAxis==6 && straightController.passThrough
+            && controller.state==RUNNING && !controller.settling;
+        if(!blend) { controller.stop(STOPPED); applyMotor(controller.pwm); }
         motionAxis=arc ? 7 : straight ? 6 : oriented ? 5 : 4; requestedForwardUm=components[0]; requestedLeftUm=components[1]; requestedTurnUrad=turn; requestedArcSweepUrad=sweep;
         for(uint8_t i=0;i<4;++i) vectorSign[i]=signedGoals[i]>0 ? 1 : signedGoals[i]<0 ? -1 : 0;
         snapshot(origin);
@@ -171,7 +191,7 @@ uint8_t Motion_Command(const _sComm *frame, uint32_t now) {
             for(uint8_t i=0;i<4;++i) { originA[i]=edgesA[i]; originB[i]=edgesB[i]; originInvalid[i]=invalidTransitions[i]; }
         }
         cancellation=0; ++movementGeneration;
-        if(straight) straightController.start(controller,{components[0]/1000.0,components[1]/1000.0,turn/1000000.0},MECANUM_HALF_WHEELBASE_MM,MECANUM_HALF_TRACK_MM,now,limits,sweep/1000000.0);
+        if(straight) straightController.start(controller,{components[0]/1000.0,components[1]/1000.0,turn/1000000.0},MECANUM_HALF_WHEELBASE_MM,MECANUM_HALF_TRACK_MM,now,limits,sweep/1000000.0,(flags&1u)!=0,blend);
         else controller.startWheelGoals(goals,now,limits);
         applyMotor(controller.pwm);
         return ACK;
@@ -208,14 +228,8 @@ void Motion_Task(uint32_t now) {
     if(controller.state!=RUNNING) return;
     if((uint32_t)(now-controller.last)<10u) return;
     int32_t values[4]; snapshot(values); updatePose(values);
-    if(motionAxis==4) {
-        const double forward=((int32_t)((uint32_t)values[0]-(uint32_t)origin[0])+(int32_t)((uint32_t)values[1]-(uint32_t)origin[1])
-            +(int32_t)((uint32_t)values[2]-(uint32_t)origin[2])+(int32_t)((uint32_t)values[3]-(uint32_t)origin[3]))/(4*TICKS_PER_MM);
-        const double left=((int32_t)((uint32_t)values[0]-(uint32_t)origin[0])-(int32_t)((uint32_t)values[1]-(uint32_t)origin[1])
-            -(int32_t)((uint32_t)values[2]-(uint32_t)origin[2])+(int32_t)((uint32_t)values[3]-(uint32_t)origin[3]))/(4*TICKS_PER_MM);
-        const double length=hypot(requestedForwardUm/1000.0,requestedLeftUm/1000.0);
-        if(hypot(requestedForwardUm/1000.0-forward,requestedLeftUm/1000.0-left)<=fmin(10.0,length/4)) controller.arrivedMask=controller.activeMask;
-    }
+    // Vector destinations finish on the individual wheel tolerances. Do not
+    // mark all wheels arrived from a broad XY radius before their goals.
     // Proyectar cada encoder al eje elegido: sincronismo y protecciones
     // comparan avances equivalentes, aunque dos ruedas giren al reves.
     for(uint8_t i=0;i<4;++i) values[i]=(int32_t)((uint32_t)values[i]-(uint32_t)origin[i])*travelSign(i);

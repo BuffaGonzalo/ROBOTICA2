@@ -15,8 +15,10 @@ SOURCES += \
 HEADERS += \
     joystickwidget.h \
     ../firmware/main/pose_kinematics.h \
+    ../firmware/main/navigation_limits.h \
     mainwindow.h \
     routeplanwidget.h \
+    obstacleplanner.h \
     smartdoublespinbox.h
 
 FORMS += \

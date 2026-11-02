@@ -8,7 +8,8 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
     app.setApplicationName("MICRO-Software");
-    app.setApplicationDisplayName("MICRO-Software");
+    // An explicitly empty display name prevents Qt appending it to captions.
+    app.setApplicationDisplayName(QStringLiteral(""));
     app.setWindowIcon(QIcon(":/resources/icons/app_icon.png"));
     app.setStyle(QStyleFactory::create("Fusion"));
 

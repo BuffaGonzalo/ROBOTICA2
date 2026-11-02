@@ -14,6 +14,7 @@
 #include <QMap>
 #include <QPushButton>
 #include <QSet>
+#include <QSignalBlocker>
 #include <functional>
 
 class JoystickWidget : public QWidget {
@@ -58,13 +59,13 @@ public:
         status=new QLabel(this); status->setWordWrap(true); layout->addWidget(status,5,0,1,3);
         auto *powerGroup=new QGroupBox("Velocidad de los motores",this);
         auto *powerLayout=new QGridLayout(powerGroup);
-        speedLabel=new QLabel("Velocidad general: 100 %",this);
+        speedLabel=new QLabel(this); speedLabel->setWordWrap(true);
         powerLayout->addWidget(speedLabel,0,0,1,4);
         speedSlider=new QSlider(Qt::Horizontal,this);
         speedSlider->setObjectName("joystickSpeed");
-        speedSlider->setRange(0,100); speedSlider->setValue(100);
+        speedSlider->setRange(0,100); speedSlider->setValue(41);
         speedSlider->setFocusPolicy(Qt::NoFocus);
-        speedSlider->setToolTip("Porcentaje de los valores PWM de cada motor. 0 % detiene el autito.");
+        speedSlider->setToolTip("0–100 % equivale a 0–255 PWM de referencia, conservando las proporciones entre motores. 0 % detiene el autito.");
         powerLayout->addWidget(speedSlider,1,0,1,4);
         const char *motorNames[]={"FR","FL","RR","RL"};
         const int defaults[]={90,90,95,105};
@@ -74,15 +75,29 @@ public:
             motorPower[i]=new QSpinBox(this);
             motorPower[i]->setObjectName(QString("joystickPower_")+QString::fromLatin1(motorNames[i]).toLower());
             motorPower[i]->setRange(0,255); motorPower[i]->setValue(defaults[i]);
+            powerReference[i]=defaults[i];
             motorPower[i]->setKeyboardTracking(false);
             motorPower[i]->setToolTip("Potencia PWM del joystick. Enter vuelve al control con flechas.");
             powerLayout->addWidget(motorPower[i],3,i);
-            connect(motorPower[i],&QSpinBox::valueChanged,this,[this]() { if(!pressed.isEmpty()) publishDirection(); });
+            connect(motorPower[i],&QSpinBox::valueChanged,this,[this]() {
+                if(applyingSpeed) return;
+                syncSpeedFromPower();
+                if(!pressed.isEmpty()) publishDirection();
+            });
         }
         connect(speedSlider,&QSlider::valueChanged,this,[this](int value) {
-            speedLabel->setText(QString("Velocidad general: %1 %").arg(value));
+            const int reference=qRound(value*255.0/100);
+            double peak=0; for(double power:powerReference) peak=qMax(peak,power);
+            speedLabel->setText(QString("Velocidad general: %1 % · PWM ref. %2/255").arg(value).arg(reference));
+            applyingSpeed=true;
+            for(int i=0;i<4;++i) {
+                const QSignalBlocker blocker(motorPower[i]);
+                motorPower[i]->setValue(peak>0 ? qBound(0,qRound(powerReference[i]*reference/peak),255) : 0);
+            }
+            applyingSpeed=false;
             if(!pressed.isEmpty()) publishDirection();
         });
+        syncSpeedFromPower();
         connect(speedSlider,&QSlider::sliderPressed,this,[this]() { setFocus(Qt::MouseFocusReason); });
         auto *powerHelp=new QLabel("PWM: potencia de 0 a 255 por motor. El porcentaje general ajusta los cuatro.\nEstos valores pertenecen al joystick; no modifican la potencia de las rutas.",this);
         powerHelp->setWordWrap(true); powerLayout->addWidget(powerHelp,4,0,1,4);
@@ -93,7 +108,7 @@ public:
     std::function<void(int,int)> directionChanged;
     std::function<void()> stopRequested;
     bool axisLocked() const { return lockButton->isChecked(); }
-    int power(int wheel) const { return motorPower[wheel]->value()*speedSlider->value()/100; }
+    int power(int wheel) const { return motorPower[wheel]->value(); }
     void setControlEnabled(bool enabled) {
         ready=enabled;
         for(auto *button:buttons) button->setEnabled(enabled);
@@ -146,6 +161,16 @@ private:
     QLabel *status=nullptr;
     QPushButton *lockButton=nullptr;
     QSpinBox *motorPower[4]={};
+    double powerReference[4]={};
+    bool applyingSpeed=false;
+    void syncSpeedFromPower() {
+        int peak=0; for(auto *spin:motorPower) peak=qMax(peak,spin->value());
+        if(peak>0) for(int i=0;i<4;++i) powerReference[i]=motorPower[i]->value();
+        const QSignalBlocker blocker(speedSlider);
+        const int percent=qRound(peak*100.0/255);
+        speedSlider->setValue(percent);
+        speedLabel->setText(QString("Velocidad general: %1 % · PWM máx. %2/255").arg(percent).arg(peak));
+    }
     QSlider *speedSlider=nullptr;
     QLabel *speedLabel=nullptr;
     void updateMode() {

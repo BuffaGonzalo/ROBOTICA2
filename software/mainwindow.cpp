@@ -64,6 +64,7 @@ QString commandLabel(quint8 id)
     if(id==0xD1) return "STOP";
     if(id==0xD2) return "MOTION_STATUS";
     if(id==0xD4) return "SETGAINS";
+    if(id==0xD5) return "SETLIMITS";
     return QString("Comando desconocido (0x%1)").arg(id, 2, 16, QLatin1Char('0'));
 }
 
@@ -99,10 +100,11 @@ MainWindow::MainWindow(QWidget *parent)
     joystick=ui->tab_JOYSTICK;
     joystick->directionChanged=[this](int forward,int left) { driveJoystick(forward,left); };
     joystick->stopRequested=[this]() { ui->pushButton_stop->click(); };
-    ui->routePlan->setToolTip("Rueda: zoom. Mantener la rueda presionada y arrastrar: desplazar vista. Izquierdo: añadir o arrastrar puntos. Derecho: eliminar.");
+    ui->routePlan->setToolTip("Rueda: zoom. Mantener la rueda presionada y arrastrar: desplazar vista. Izquierdo: añadir o arrastrar puntos. Derecho: eliminar. Doble clic en los ejes: editar su ángulo de rotación.");
     showTopStatus();
     ui->tabWidget_wifi->setCurrentIndex(0);
     ui->routePlan->changed=[this]() {
+        ui->routePlan->showActiveRoute=false;
         QString status=QString("%1 setpoints · izquierdo añade/arrastra; derecho elimina. Coordenadas en cm.").arg(ui->routePlan->points.size());
         const int selected=ui->routePlan->selectedIndex;
         if(selected>=0 && selected<ui->routePlan->points.size()) {
@@ -116,6 +118,11 @@ MainWindow::MainWindow(QWidget *parent)
         }
         else if(ui->routePlan->oriented) status+=" Orientación activa: arrastrá las flechas de llegada o hacé doble clic en un punto.";
         if(ui->routePlan->arcMode) status+=" Arco activo: clic en vacío agrega un arco de 180°; clic en un setpoint edita sus datos.";
+        if(ui->routePlan->obstacleMode) status+=" Obstáculos: clic añade, derecho elimina y doble clic edita.";
+        if(!ui->routePlan->obstacles.isEmpty()) status+=QString(" Robot %1 × %2 cm · seguridad %3 cm · %4 obstáculos.")
+            .arg(ui->routePlan->robotLengthCm).arg(ui->routePlan->robotWidthCm).arg(ui->routePlan->safetyDistanceCm).arg(ui->routePlan->obstacles.size());
+        const auto preview=ui->routePlan->routePreview();
+        if(!preview.valid) status+=" "+preview.error;
         ui->label_routeStatus->setText(status);
         updateCommandUi();
     };
@@ -126,6 +133,11 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(ui->pushButton_runRoute,&QPushButton::clicked,this,&MainWindow::startRoute);
     connect(ui->pushButton_reverseRoute,&QPushButton::clicked,this,&MainWindow::startReverseRoute);
+    ui->pushButton_mirrorRoute->setStyleSheet("QPushButton:checked { background: #4d638c; border: 2px solid #9bbcf0; }");
+    connect(ui->pushButton_mirrorRoute,&QPushButton::toggled,this,[this](bool enabled) {
+        ui->label_routeStatus->setText(enabled ? "Espejo activado: Ruta inversa volverá por el reflejo del camino de ida, con los mismos extremos."
+            : "Espejo desactivado: Ruta inversa volverá por el mismo camino de ida.");
+    });
     connect(ui->pushButton_resumeRoute,&QPushButton::clicked,this,&MainWindow::resumeRoute);
     ui->pushButton_routeOrientation->setStyleSheet("QPushButton:checked { background: #338c73; border: 2px solid #70d8c3; }");
     connect(ui->pushButton_routeOrientation,&QPushButton::toggled,this,[this](bool enabled) {
@@ -133,7 +145,13 @@ MainWindow::MainWindow(QWidget *parent)
     });
     ui->pushButton_routeArc->setStyleSheet("QPushButton:checked { background: #338c73; border: 2px solid #70d8c3; }");
     connect(ui->pushButton_routeArc,&QPushButton::toggled,this,[this](bool enabled) {
+        if(enabled) ui->pushButton_obstacles->setChecked(false);
         ui->routePlan->arcMode=enabled; ui->routePlan->update(); ui->routePlan->changed();
+    });
+    ui->pushButton_obstacles->setStyleSheet("QPushButton:checked { background: #9a5b37; border: 2px solid #ed9965; }");
+    connect(ui->pushButton_obstacles,&QPushButton::toggled,this,[this](bool enabled) {
+        if(enabled) ui->pushButton_routeArc->setChecked(false);
+        ui->routePlan->obstacleMode=enabled; ui->routePlan->update(); ui->routePlan->changed();
     });
     connect(ui->pushButton_importRoute,&QPushButton::clicked,this,[this]() {
         const QString path=QFileDialog::getOpenFileName(this,"Importar ruta",QString(),"Rutas JSON (*.json)");
@@ -151,16 +169,19 @@ MainWindow::MainWindow(QWidget *parent)
     });
     connect(ui->pushButton_clearRoute,&QPushButton::clicked,this,[this]() {
         routePaused=resumeReady=false;
+        outboundRoute={}; outboundRouteKey.clear();
         ui->routePlan->points.clear(); ui->routePlan->headings.clear(); ui->routePlan->arcSweeps.clear(); ui->routePlan->selectedIndex=-1; ui->routePlan->completed=0; ui->routePlan->update(); ui->routePlan->changed();
     });
     connect(ui->pushButton_resetMap,&QPushButton::clicked,this,[this]() {
         routePaused=resumeReady=false;
+        outboundRoute={}; outboundRouteKey.clear();
         mapTracking=false; mapReset=true; ui->routePlan->trace.clear(); ui->routePlan->setRobot({0,0});
         mapOrigin=plannedPosition=plannedLegEnd=QPointF(0,0); lastDistanceCm=0;
         ui->routePlan->robotHeadingDeg=plannedHeadingDeg=plannedLegHeadingDeg=mapHeadingDeg=0;
         ui->routePlan->viewOffset={};
         haveDistance=true; showTopStatus("Esperando telemetría");
         ui->routePlan->completed=0; ui->label_routeStatus->setText("Reset: posición y recorrido en (0, 0). Ruta conservada. No se movió físicamente el robot.");
+        ui->routePlan->showActiveRoute=false; ui->routePlan->update();
         updateCommandUi();
     });
     for(QSpinBox *spin : {ui->spinBox_fr,ui->spinBox_fl,ui->spinBox_rr,ui->spinBox_rl}) {
@@ -225,6 +246,9 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
     connect(ui->pushButton_stop, &QPushButton::clicked, this, [this, pwmTimer, stopTimer]() {
+        mapLimitsDirty=mapLimitsPending=moveAwaitingAck=false;
+        if(mapSpeedSendTimer) mapSpeedSendTimer->stop();
+        if(mapSpeedAckTimer) mapSpeedAckTimer->stop();
         joystickDriving=false;
         joystick->reset();
         showTopStatus("Parada de emergencia");
@@ -336,6 +360,22 @@ MainWindow::MainWindow(QWidget *parent)
             if(topEvent!="Parada de emergencia" && topEvent!="Ruta terminada") showTopStatus("Esperando telemetría");
         }
     });
+    mapSpeedSendTimer=new QTimer(this); mapSpeedSendTimer->setObjectName("mapSpeedSendTimer");
+    mapSpeedSendTimer->setSingleShot(true); mapSpeedSendTimer->setInterval(60);
+    connect(mapSpeedSendTimer,&QTimer::timeout,this,&MainWindow::sendMapSpeedLimits);
+    mapSpeedAckTimer=new QTimer(this); mapSpeedAckTimer->setObjectName("mapSpeedAckTimer");
+    mapSpeedAckTimer->setSingleShot(true); mapSpeedAckTimer->setInterval(1500);
+    connect(mapSpeedAckTimer,&QTimer::timeout,this,[this]() {
+        mapLimitsPending=false;
+        if(routeActive || motionRunning) {
+            ui->pushButton_stop->click();
+            ui->label_routeStatus->setText("Sin confirmación del cambio de velocidad. Robot detenido; actualizá el firmware para ajustar potencia durante la marcha.");
+        }
+    });
+    connect(ui->routePlan->speedSlider,&QSlider::valueChanged,this,&MainWindow::setMapSpeed);
+    for(auto *spin:{ui->spinBox_move_fr,ui->spinBox_move_fl,ui->spinBox_move_rr,ui->spinBox_move_rl})
+        connect(spin,&QSpinBox::valueChanged,this,[this]() { if(!syncingMapSpeed) syncMapSpeedFromConfiguration(); });
+    syncMapSpeedFromConfiguration();
     aliveTimer->start();
     updateConnectionUi();
 }
@@ -589,20 +629,27 @@ void MainWindow::cancelRoute(const QString &reason)
     if(!routeActive) return;
     routePauseTimer->stop();
     routeActive=false; routeAck=false; routeSeenRunning=false;
+    mapLimitsDirty=mapLimitsPending=moveAwaitingAck=false;
+    if(mapSpeedSendTimer) mapSpeedSendTimer->stop();
+    if(mapSpeedAckTimer) mapSpeedAckTimer->stop();
     ui->label_routeStatus->setText(reason); log(reason,true); updateCommandUi();
 }
 
 bool MainWindow::exportRouteFile(const QString &path, QString &error) const
 {
-    if(ui->routePlan->points.isEmpty()) { error="La ruta no tiene puntos para exportar."; return false; }
+    if(ui->routePlan->points.isEmpty() && ui->routePlan->obstacles.isEmpty()) { error="No hay puntos ni obstáculos para exportar."; return false; }
     QJsonArray points;
     for(int i=0;i<ui->routePlan->points.size();++i) {
         const auto point=ui->routePlan->points[i];
         points.append(QJsonObject{{"x",point.x()},{"y",point.y()},{"headingDeg",ui->routePlan->headingAt(i)},{"arcSweepDeg",ui->routePlan->arcAt(i)}});
     }
-    const QJsonDocument document(QJsonObject{{"format","robotica2-route"},{"version",3},{"units","cm"},
+    QJsonArray obstacles;
+    for(const auto &o:ui->routePlan->obstacles) obstacles.append(QJsonObject{{"x",o.center.x()},{"y",o.center.y()},{"shape",o.circular ? "circle" : "square"},{"sizeCm",o.sizeCm}});
+    const QJsonDocument document(QJsonObject{{"format","robotica2-route"},{"version",4},{"units","cm"},
         {"axes","x-right-y-forward"},{"orientationEnabled",ui->routePlan->oriented},
         {"arcMode",ui->routePlan->arcMode},
+        {"obstacleMode",ui->routePlan->obstacleMode},{"obstacles",obstacles},
+        {"robotLengthCm",ui->routePlan->robotLengthCm},{"robotWidthCm",ui->routePlan->robotWidthCm},{"safetyDistanceCm",ui->routePlan->safetyDistanceCm},
         {"frameRotationDeg",ui->routePlan->frameRotationDeg},{"points",points}});
     QSaveFile file(path);
     if(!file.open(QIODevice::WriteOnly)) { error=file.errorString(); return false; }
@@ -623,14 +670,35 @@ bool MainWindow::importRouteFile(const QString &path, QString &error)
     const QJsonDocument document=QJsonDocument::fromJson(file.readAll(),&parseError);
     if(parseError.error!=QJsonParseError::NoError) { error="JSON inválido: "+parseError.errorString(); return false; }
     const QJsonObject object=document.object();
-    const bool version3=object.value("version")==QJsonValue(3);
+    const bool version4=object.value("version")==QJsonValue(4);
+    const bool version3=version4 || object.value("version")==QJsonValue(3);
     const bool version2=version3 || object.value("version")==QJsonValue(2);
     if(!document.isObject() || object.value("format")!="robotica2-route" || (!version2 && object.value("version")!=QJsonValue(1))
         || object.value("units")!="cm" || object.value("axes")!="x-right-y-forward" || !object.value("points").isArray()) {
-        error="Formato de ruta no compatible. Se requiere robotica2-route versión 1, 2 o 3, en cm, con ejes +X derecha y +Y avance."; return false;
+        error="Formato de ruta no compatible. Se requiere robotica2-route versión 1, 2, 3 o 4, en cm, con ejes +X derecha y +Y avance."; return false;
+    }
+    QList<MapObstacle> obstacles;
+    double robotLength=ui->routePlan->robotLengthCm,robotWidth=ui->routePlan->robotWidthCm,safety=ui->routePlan->safetyDistanceCm;
+    if(version4) {
+        const auto validNumber=[](const QJsonValue &value,double minimum,double maximum) { return value.isDouble() && std::isfinite(value.toDouble()) && value.toDouble()>=minimum && value.toDouble()<=maximum; };
+        if(!object.value("obstacleMode").isBool() || !object.value("obstacles").isArray()
+            || object.value("obstacles").toArray().size()>50 || !validNumber(object.value("robotLengthCm"),1,200)
+            || !validNumber(object.value("robotWidthCm"),1,200) || !validNumber(object.value("safetyDistanceCm"),0,100)
+            || (object.value("obstacleMode").toBool() && object.value("arcMode").toBool())) {
+            error="Datos de obstáculos, medidas del robot o distancia de seguridad inválidos."; return false;
+        }
+        robotLength=object.value("robotLengthCm").toDouble(); robotWidth=object.value("robotWidthCm").toDouble(); safety=object.value("safetyDistanceCm").toDouble();
+        for(const auto &entry:object.value("obstacles").toArray()) {
+            const auto o=entry.toObject(); const QString shape=o.value("shape").toString();
+            if(!entry.isObject() || !validNumber(o.value("x"),-1000,1000) || !validNumber(o.value("y"),-1000,1000)
+                || !validNumber(o.value("sizeCm"),1,500) || (shape!="circle" && shape!="square")) {
+                error="Obstáculo inválido: se requiere centro XY, tamaño entre 1 y 500 cm y forma circle o square."; return false;
+            }
+            obstacles.append({{o.value("x").toDouble(),o.value("y").toDouble()},shape=="circle",o.value("sizeCm").toDouble()});
+        }
     }
     const QJsonArray entries=object.value("points").toArray();
-    if(entries.isEmpty() || entries.size()>100) { error="La ruta debe contener entre 1 y 100 puntos."; return false; }
+    if((entries.isEmpty() && obstacles.isEmpty()) || entries.size()>100) { error="El archivo debe contener puntos u obstáculos, con un máximo de 100 puntos."; return false; }
     QList<QPointF> points;
     QList<double> headings;
     QList<double> arcSweeps;
@@ -663,48 +731,72 @@ bool MainWindow::importRouteFile(const QString &path, QString &error)
     if(!rotation.isUndefined() && (!rotation.isDouble() || !std::isfinite(rotation.toDouble()))) {
         error="La orientación del plano debe ser un número válido en grados."; return false;
     }
+    outboundRoute={}; outboundRouteKey.clear();
     ui->routePlan->points=points;
     ui->routePlan->headings=headings;
     ui->routePlan->arcSweeps=arcSweeps;
+    ui->routePlan->obstacles=obstacles; ui->routePlan->robotLengthCm=robotLength; ui->routePlan->robotWidthCm=robotWidth; ui->routePlan->safetyDistanceCm=safety;
+    ui->routePlan->selectedObstacle=-1; ui->routePlan->showActiveRoute=false;
     ui->pushButton_routeOrientation->setChecked(version2 && object.value("orientationEnabled").toBool());
     ui->pushButton_routeArc->setChecked(version3 && object.value("arcMode").toBool());
+    ui->pushButton_obstacles->setChecked(version4 && object.value("obstacleMode").toBool());
     ui->routePlan->frameRotationDeg=std::remainder(rotation.toDouble(),360.0);
     ui->routePlan->selectedIndex=-1;
     ui->routePlan->completed=0;
     ui->routePlan->update();
     ui->routePlan->changed();
-    ui->label_routeStatus->setText(QString("Ruta importada: %1 puntos · %2").arg(points.size()).arg(QDir::toNativeSeparators(path)));
+    QString status=QString("Mapa importado: %1 puntos y %2 obstáculos · %3").arg(points.size()).arg(obstacles.size()).arg(QDir::toNativeSeparators(path));
+    const auto preview=ui->routePlan->routePreview(); if(!preview.valid) status+=" · "+preview.error;
+    ui->label_routeStatus->setText(status);
     return true;
 }
 
 void MainWindow::startRoute()
 {
     if(routeActive || motionRunning || stopPending || pidPending || ui->routePlan->points.isEmpty()) return;
-    reverseRoute=false; executionTargets=ui->routePlan->points;
-    routeOriented=ui->routePlan->oriented;
-    executionHeadings.clear(); for(int i=0;i<executionTargets.size();++i) executionHeadings.append(ui->routePlan->headingAt(i));
-    executionArcSweeps.clear(); for(int i=0;i<executionTargets.size();++i) executionArcSweeps.append(ui->routePlan->arcAt(i));
-    plannedHeadingDeg=ui->routePlan->robotHeadingDeg;
-    routePaused=resumeReady=false;
-    plannedPosition=ui->routePlan->robot;
-    routeActive=true; routeIndex=0; ui->routePlan->completed=0;
-    nextRouteLeg();
+    if(prepareRoute(false)) nextRouteLeg();
 }
 
 void MainWindow::startReverseRoute()
 {
     if(routeActive || motionRunning || stopPending || pidPending || ui->routePlan->points.isEmpty()) return;
-    // La inversa parte del extremo final de la ruta; no corrige su posición.
-    executionTargets.clear();
-    executionHeadings.clear(); routeOriented=ui->routePlan->oriented;
-    executionArcSweeps.clear(); for(int i=ui->routePlan->points.size()-1;i>=0;--i) executionArcSweeps.append(-ui->routePlan->arcAt(i));
-    routePaused=resumeReady=false;
-    for(int i=ui->routePlan->points.size()-2;i>=0;--i) { executionTargets.append(ui->routePlan->points[i]); executionHeadings.append(ui->routePlan->headingAt(i)); }
-    executionTargets.append(QPointF(0,0));
-    executionHeadings.append(0); plannedHeadingDeg=ui->routePlan->robotHeadingDeg;
-    plannedPosition=ui->routePlan->points.last();
-    reverseRoute=true; routeActive=true; routeIndex=0; ui->routePlan->completed=0;
-    nextRouteLeg();
+    if(prepareRoute(true)) nextRouteLeg();
+}
+
+bool MainWindow::prepareRoute(bool reverse)
+{
+    const auto key=ui->routePlan->routeDefinitionKey();
+    AvoidanceRoute plan;
+    QPointF start=ui->routePlan->robot;
+    if(reverse) {
+        // Retain the outbound plan even after its active drawing is replaced
+        // by a return or a pause/resume edits the pending execution arrays.
+        const auto source=outboundRouteKey==key && !outboundRoute.steps.isEmpty() ? outboundRoute
+            : ui->routePlan->plannedRoute(QPointF(),0);
+        plan=ui->routePlan->returnRoute(source,ui->pushButton_mirrorRoute->isChecked());
+        if(plan.valid && ui->routePlan->obstacles.isEmpty()) start=plan.steps.first().start;
+    } else {
+        plan=ui->routePlan->plannedRoute(start,ui->routePlan->robotHeadingDeg);
+    }
+    if(!plan.valid) { ui->label_routeStatus->setText(plan.error); log(plan.error,true); return false; }
+    if(!reverse) { outboundRoute=plan; outboundRouteKey=key; }
+    executionTargets.clear(); executionHeadings.clear(); executionArcSweeps.clear(); executionCompletedCounts.clear();
+    for(const auto &step:plan.steps) {
+        executionTargets.append(step.end); executionHeadings.append(step.endHeading);
+        executionArcSweeps.append(step.arcSweep); executionCompletedCounts.append(step.completedCount);
+    }
+    ui->routePlan->activeRoute=plan; ui->routePlan->showActiveRoute=true; ui->routePlan->update();
+    reverseRoute=reverse; routeOriented=ui->routePlan->oriented;
+    plannedPosition=start; plannedHeadingDeg=ui->routePlan->robotHeadingDeg;
+    routePaused=resumeReady=false; routeActive=true; routeIndex=0; ui->routePlan->completed=0;
+    return true;
+}
+
+void MainWindow::advanceRouteTarget()
+{
+    const int complete=routeIndex<executionCompletedCounts.size() ? executionCompletedCounts[routeIndex] : routeIndex+1;
+    if(complete>0) ui->routePlan->completed=qMax(ui->routePlan->completed,complete);
+    ++routeIndex; ui->routePlan->update();
 }
 
 void MainWindow::resumeRoute()
@@ -726,16 +818,17 @@ void MainWindow::resumeRoute()
     nextRouteLeg();
 }
 
-void MainWindow::nextRouteLeg()
+void MainWindow::nextRouteLeg(bool continuous)
 {
     if(!routeActive) return;
     QPointF delta;
-    // Avanzar por el plan nominal. ARRIVED del firmware cierra cada tramo;
+    // Avanzar por el plan nominal. Los destinos esperan ARRIVED;
+    // los puntos automáticos enlazan el siguiente tramo durante la marcha.
     // no crear micro-MOVE para corregir el residuo de la odometría de Qt.
     while(routeIndex<executionTargets.size()) {
         delta=executionTargets[routeIndex]-plannedPosition;
         if((routeIndex<executionArcSweeps.size() && executionArcSweeps[routeIndex]!=0) || std::abs(delta.x())>0.05 || std::abs(delta.y())>0.05 || (routeOriented && std::abs(std::remainder(executionHeadings[routeIndex]-plannedHeadingDeg,360.0))>0.1)) break;
-        ui->routePlan->completed=++routeIndex; ui->routePlan->update();
+        advanceRouteTarget();
     }
     if(routeIndex==executionTargets.size()) {
         showTopStatus("Ruta terminada");
@@ -754,32 +847,55 @@ void MainWindow::nextRouteLeg()
     leg.forward*=fraction; leg.left*=fraction; leg.turn*=fraction;
     plannedLegEnd=plannedPosition+delta*fraction;
     plannedLegHeadingDeg=plannedHeadingDeg+leg.turn*180/PoseKinematics::POSE_PI;
-    const int axis=arcSweep!=0 ? 7 : routeOriented ? 6 : 4;
+    if(!ui->routePlan->obstacles.isEmpty() && !ui->routePlan->planner(NavigationLimits::TrackingReserveMm/10).pathFree(plannedPosition,plannedLegEnd,arcSweep)) {
+        ui->pushButton_stop->click();
+        ui->label_routeStatus->setText("Ruta detenida: la posición medida salió del corredor seguro. Revisá el mapa y la posición del robot antes de continuar.");
+        return;
+    }
+    const bool isIntermediate=routeIndex<executionCompletedCounts.size() && executionCompletedCounts[routeIndex]==0;
+    const bool detour=routeIndex<ui->routePlan->activeRoute.steps.size() && ui->routePlan->activeRoute.steps[routeIndex].detour && arcSweep==0;
     const double distance=std::hypot(leg.forward,leg.left);
     routeExpectedUm=static_cast<qint32>(std::lround(distance*10000.0));
     routeForwardUm=static_cast<qint32>(std::lround(leg.forward*10000.0));
     routeLeftUm=static_cast<qint32>(std::lround(leg.left*10000.0));
     routeTurnUrad=static_cast<qint32>(std::lround(leg.turn*1000000.0));
     routeArcSweepUrad=static_cast<qint32>(std::lround(arcSweep*PoseKinematics::POSE_PI/180*1000000.0));
-    // Trama vectorial rechazada por firmware antiguo: no degradar a 45° + recta.
-    QByteArray payload(axis==7 ? 22 : routeOriented ? 18 : 13,'\0'); payload[0]=static_cast<char>(0xD0);
+    // Plain axial setpoints use exactly the Configuration MOVE command,
+    // including its longitudinal/lateral controller and encoder telemetry.
+    // Round first: floating-point rotation must not create a spurious axis.
+    const int axis=arcSweep!=0 ? 7 : (routeOriented || detour) ? 6
+        : routeLeftUm==0 ? 0 : routeForwardUm==0 ? 1 : 4;
+    QByteArray payload(axis==0 ? 9 : axis==1 ? 10 : axis==7 ? 22 : detour ? 19 : routeOriented ? 18 : 13,'\0');
+    payload[0]=static_cast<char>(0xD0);
     if(axis>=6) { qToLittleEndian<qint32>(routeTurnUrad,payload.data()+13); payload[17]=char(axis); }
+    if(detour) payload[18]=char((isIntermediate ? 1 : 0) | (continuous ? 2 : 0));
     if(axis==7) qToLittleEndian<qint32>(routeArcSweepUrad,payload.data()+18);
-    qToLittleEndian<qint32>(routeForwardUm,payload.data()+1);
-    qToLittleEndian<qint32>(routeLeftUm,payload.data()+5);
+    if(axis<=1) {
+        qToLittleEndian<qint32>(axis==0 ? routeForwardUm : routeLeftUm,payload.data()+1);
+        if(axis==1) payload[9]=char(1);
+    } else {
+        qToLittleEndian<qint32>(routeForwardUm,payload.data()+1);
+        qToLittleEndian<qint32>(routeLeftUm,payload.data()+5);
+    }
     const int limits[]={ui->spinBox_move_fr->value(),ui->spinBox_move_fl->value(),ui->spinBox_move_rr->value(),ui->spinBox_move_rl->value()};
     // Un eje necesita las cuatro ruedas; no ejecutar rutas con una deshabilitada.
     for(int i=0;i<4;++i) {
         if(limits[i]<=0) { cancelRoute("Configurá potencia mayor que cero en las cuatro ruedas antes de ejecutar la ruta."); return; }
-        payload[9+i]=static_cast<char>(limits[i]);
+        payload[(axis<=1 ? 5 : 9)+i]=static_cast<char>(limits[i]);
     }
     if(!sendPayload(payload)) { cancelRoute("No se pudo enviar la ruta: revisá la conexión."); return; }
+    log(QString("MOVE ruta: (%1, %2) → (%3, %4) cm · avance %5 cm · lateral %6 cm · %7 · PWM FR/FL/RR/RL %8/%9/%10/%11")
+        .arg(plannedPosition.x(),0,'f',3).arg(plannedPosition.y(),0,'f',3)
+        .arg(plannedLegEnd.x(),0,'f',3).arg(plannedLegEnd.y(),0,'f',3)
+        .arg(routeForwardUm/10000.0,0,'f',3).arg(routeLeftUm/10000.0,0,'f',3).arg(movementName(axis))
+        .arg(limits[0]).arg(limits[1]).arg(limits[2]).arg(limits[3]),true);
     armMapMovement(axis); motionRunning=true; routeAck=false; routeSeenRunning=false;
     showTopStatus("Desplazamiento");
     expectedGeneration=lastGeneration<0 ? -1 : (lastGeneration+1)&65535;
     routeSentMs=routeLastSampleMs=QDateTime::currentMSecsSinceEpoch();
-    ui->label_routeStatus->setText(QString("Setpoint %1/%2: (%3, %4) cm · tramo %5 de %6 cm. Posición estimada por encoders.")
-        .arg(routeIndex+1).arg(executionTargets.size()).arg(executionTargets[routeIndex].x()).arg(executionTargets[routeIndex].y())
+    ui->label_routeStatus->setText(QString("%1 %2/%3: (%4, %5) cm · %6 de %7 cm. Posición estimada por encoders.")
+        .arg(isIntermediate ? "Desvío continuo" : "Tramo")
+        .arg(routeIndex+1).arg(executionTargets.size()).arg(executionTargets[routeIndex].x(),0,'f',1).arg(executionTargets[routeIndex].y(),0,'f',1)
         .arg(movementName(axis)).arg(distance,0,'f',2));
     if(routeOriented) ui->label_routeStatus->setText(ui->label_routeStatus->text()+QString(" Llegada: %1° · giro progresivo %2°.").arg(executionHeadings[routeIndex],0,'f',1).arg(leg.turn*180/PoseKinematics::POSE_PI,0,'f',1));
     updateCommandUi();
@@ -796,15 +912,18 @@ void MainWindow::updateCommandUi()
     const bool routeEditable=!routeActive && !motionRunning && !stopPending && !manualRunning;
     const bool onVisualization=ui->tabWidget_wifi->currentWidget()==ui->tab_MAIN;
     const bool onConfiguration=ui->tabWidget_wifi->currentWidget()==ui->tab_CONFIG;
+    const bool routeHasPower=ui->spinBox_move_fr->value()>0 && ui->spinBox_move_fl->value()>0 && ui->spinBox_move_rr->value()>0 && ui->spinBox_move_rl->value()>0;
     ui->routePlan->editable=routeEditable && !routePaused && onVisualization;
     ui->routePlan->orientationEditable=routeEditable && !routePaused;
     ui->pushButton_routeOrientation->setEnabled(routeEditable && !routePaused && !pidPending);
     ui->pushButton_routeArc->setEnabled(routeEditable && !routePaused && !pidPending);
+    ui->pushButton_mirrorRoute->setEnabled(routeEditable && !routePaused && !pidPending);
+    ui->pushButton_obstacles->setEnabled(routeEditable && !routePaused && !pidPending);
     ui->pushButton_importRoute->setEnabled(routeEditable && !routePaused && !pidPending);
-    ui->pushButton_exportRoute->setEnabled(!ui->routePlan->points.isEmpty());
-    ui->pushButton_resumeRoute->setEnabled(canSend && routeEditable && !pidPending && onVisualization && routePaused && resumeReady);
-    ui->pushButton_runRoute->setEnabled(canSend && routeEditable && !pidPending && onVisualization && !ui->routePlan->points.isEmpty());
-    ui->pushButton_reverseRoute->setEnabled(ui->pushButton_runRoute->isEnabled());
+    ui->pushButton_exportRoute->setEnabled(!ui->routePlan->points.isEmpty() || !ui->routePlan->obstacles.isEmpty());
+    ui->pushButton_resumeRoute->setEnabled(canSend && routeEditable && !pidPending && onVisualization && routeHasPower && routePaused && resumeReady);
+    ui->pushButton_runRoute->setEnabled(canSend && routeEditable && !pidPending && onVisualization && routeHasPower && !ui->routePlan->points.isEmpty() && ui->routePlan->routePreview().valid);
+    ui->pushButton_reverseRoute->setEnabled(canSend && routeEditable && !pidPending && onVisualization && routeHasPower && !ui->routePlan->points.isEmpty());
     ui->pushButton_clearRoute->setEnabled(routeEditable && !ui->routePlan->points.isEmpty());
     ui->pushButton_resetMap->setEnabled(routeEditable);
     ui->groupBox_pid->setEnabled(!motionRunning && !stopPending && !pidPending && !manualRunning);
@@ -1032,6 +1151,11 @@ void MainWindow::processFrames(QByteArray &buffer, const QString &transport)
                     if(!odometryWarningShown) { log("Firmware anterior: el plano solo proyecta el recorrido solicitado. Actualizar firmware/main para medir XY por las cuatro ruedas.",true); odometryWarningShown=true; }
                 }
                 ui->routePlan->setRobot(mapOrigin+displacement);
+                if(routeActive && routeSample && state==1 && !ui->routePlan->obstacles.isEmpty()
+                    && !ui->routePlan->planner(NavigationLimits::TrackingReserveMm/10).pointFree(ui->routePlan->robot)) {
+                    ui->pushButton_stop->click();
+                    ui->label_routeStatus->setText("Parada: la posición medida entró en la zona de seguridad de un obstáculo. Revisá la posición y el mapa antes de continuar.");
+                }
                 if(state!=1 && !routePaused) mapTracking=false;
             }
             if(routePaused && payload.size()>=53 && generationMatches && mode==mapMode && (state==2 || state==3) && static_cast<quint8>(payload[27])==1) {
@@ -1044,19 +1168,48 @@ void MainWindow::processFrames(QByteArray &buffer, const QString &transport)
                 else if(routeSample) {
                     routeLastSampleMs=QDateTime::currentMSecsSinceEpoch();
                     if(state==1) routeSeenRunning=true;
-                    if(state==2 && (routeSeenRunning || hasVectorStatus)) {
+                    const bool currentIsIntermediate = (routeIndex < executionCompletedCounts.size() && executionCompletedCounts[routeIndex] == 0);
+                    const double remainingDist = QLineF(ui->routePlan->robot, plannedLegEnd).length();
+                    const double legTotalDist = QLineF(mapOrigin, plannedLegEnd).length();
+                    const double arrivalMargin = NavigationLimits::PassThroughMarginMm / 10.0;
+                    const double threshold = qMin(arrivalMargin, legTotalDist > 0.1 ? legTotalDist * 0.25 : arrivalMargin);
+
+                    if(state==1 && routeSeenRunning && currentIsIntermediate && remainingDist <= threshold
+                       && (!routeOriented || std::abs(std::remainder(ui->routePlan->robotHeadingDeg - executionHeadings[routeIndex], 360.0)) <= 5.0)) {
+                        if(routeIndex<executionTargets.size() && QLineF(plannedLegEnd,executionTargets[routeIndex]).length()<0.05
+                            && (!routeOriented || std::abs(std::remainder(plannedLegHeadingDeg-executionHeadings[routeIndex],360.0))<0.1)) {
+                            advanceRouteTarget();
+                        }
+                        plannedPosition=ui->routePlan->robot;
+                        plannedHeadingDeg=ui->routePlan->robotHeadingDeg;
+                        routeAck=false; routeSeenRunning=false;
+                        mapLimitsPending=mapLimitsDirty=false;
+                        mapSpeedAckTimer->stop(); mapSpeedSendTimer->stop();
+                        ui->label_routeStatus->setText(QString("Punto intermedio alcanzado (%1/%2) · continuando sin detención...")
+                            .arg(routeIndex).arg(executionTargets.size()));
+                        nextRouteLeg(true);
+                    } else if(state==2 && (routeSeenRunning || hasVectorStatus)) {
+                        mapLimitsPending=mapLimitsDirty=false;
+                        mapSpeedAckTimer->stop(); mapSpeedSendTimer->stop();
+                        const bool wasIntermediate = (routeIndex < executionCompletedCounts.size() && executionCompletedCounts[routeIndex] == 0);
                         // ARRIVED accepts the firmware's arrival margin. Consume
                         // that target explicitly, then plan from the measured pose
                         // so the residual does not accumulate between setpoints.
                         if(routeIndex<executionTargets.size() && QLineF(plannedLegEnd,executionTargets[routeIndex]).length()<0.05
                             && (!routeOriented || std::abs(std::remainder(plannedLegHeadingDeg-executionHeadings[routeIndex],360.0))<0.1)) {
-                            ui->routePlan->completed=++routeIndex; ui->routePlan->update();
+                            advanceRouteTarget();
                         }
                         plannedPosition=ui->routePlan->robot;
                         plannedHeadingDeg=ui->routePlan->robotHeadingDeg;
                         routeAck=false; routeSeenRunning=false;
-                        ui->label_routeStatus->setText("Tramo finalizado · pausa de 500 ms antes de continuar.");
-                        routePauseTimer->start();
+                        if(wasIntermediate) {
+                            ui->label_routeStatus->setText(QString("Punto intermedio alcanzado (%1/%2) · continuando sin detención...")
+                                .arg(routeIndex).arg(executionTargets.size()));
+                            routePauseTimer->start(0);
+                        } else {
+                            ui->label_routeStatus->setText("Tramo finalizado · pausa de 500 ms antes de continuar.");
+                            routePauseTimer->start(500);
+                        }
                     }
                 }
             }
@@ -1082,6 +1235,10 @@ void MainWindow::processFrames(QByteArray &buffer, const QString &transport)
                 const QString summary=health.join("\n");
                 if(summary!=lastEncoderSummary) { log("Diagnóstico Hall · "+health.join(" | "),true); lastEncoderSummary=summary; }
             }
+            if(state!=1 && !moveAwaitingAck && (!routeActive || routeSample)) {
+                mapLimitsPending=mapLimitsDirty=false;
+                mapSpeedAckTimer->stop(); mapSpeedSendTimer->stop();
+            }
             lastMotionTelemetryMs=QDateTime::currentMSecsSinceEpoch();
             motionRunning=state==1;
             updateCommandUi();
@@ -1095,8 +1252,19 @@ void MainWindow::processFrames(QByteArray &buffer, const QString &transport)
             log(accepted ? "SETGAINS: ACK; PID aplicado." : "SETGAINS: NACK; PID rechazado.",true);
             updateCommandUi();
         }
+        if(id==0xD5 && payload.size()==2 && mapLimitsPending) {
+            mapLimitsPending=false; mapSpeedAckTimer->stop();
+            if(static_cast<quint8>(payload[1])!=0x0D) {
+                ui->pushButton_stop->click();
+                ui->label_routeStatus->setText("Cambio de velocidad rechazado. Robot detenido; comprobá el firmware y la potencia de las cuatro ruedas.");
+            } else if(mapLimitsDirty && !mapSpeedSendTimer->isActive()) mapSpeedSendTimer->start();
+        }
         if((id==0xD0 || id==0xD1) && payload.size()==2) {
             const bool accepted=static_cast<quint8>(payload[1])==0x0D;
+            if(id==0xD0) {
+                moveAwaitingAck=false;
+                if(accepted && mapLimitsDirty && !mapSpeedSendTimer->isActive()) mapSpeedSendTimer->start();
+            }
             log(commandLabel(id)+(accepted?" aceptado: ACK.":" rechazado: NACK."),true);
             if(id==0xD0 && !accepted) motionRunning=false;
             if(id==0xD0 && routeActive) {
@@ -1157,6 +1325,11 @@ bool MainWindow::sendPayload(const QByteArray &payload)
         }
     }
     if (sent != frame.size()) return false;
+    if(static_cast<quint8>(payload[0])==0xD0) {
+        moveAwaitingAck=true; mapLimitsDirty=mapLimitsPending=false;
+        if(mapSpeedAckTimer) mapSpeedAckTimer->stop();
+        if(mapSpeedSendTimer) mapSpeedSendTimer->stop();
+    }
     log(medium + (medium == "Serial" ? " TX en cola  " : " TX  ")
         + QString::fromLatin1(frame.toHex(' ').toUpper()));
     log(medium + " TX · " + commandLabel(static_cast<quint8>(payload[0])), true);
@@ -1180,6 +1353,48 @@ void MainWindow::sendSelectedCommand()
         else { timer->stop(); showTopStatus("Parada de emergencia"); }
     }
     updateCommandUi();
+}
+
+void MainWindow::syncMapSpeedFromConfiguration()
+{
+    const int values[]={ui->spinBox_move_fr->value(),ui->spinBox_move_fl->value(),ui->spinBox_move_rr->value(),ui->spinBox_move_rl->value()};
+    int peak=0; for(int value:values) peak=qMax(peak,value);
+    if(peak>0) for(int i=0;i<4;++i) mapMotorCalibration[i]=values[i];
+    const QSignalBlocker blocker(ui->routePlan->speedSlider);
+    ui->routePlan->speedSlider->setValue(qRound(peak*100.0/255));
+    ui->routePlan->showMotorPower(values[0],values[1],values[2],values[3]);
+    updateCommandUi();
+}
+
+void MainWindow::setMapSpeed(int percent)
+{
+    int peak=0; for(int value:mapMotorCalibration) peak=qMax(peak,value);
+    if(peak==0) return;
+    const int reference=qRound(qBound(0,percent,100)*255.0/100);
+    QSpinBox *spins[]={ui->spinBox_move_fr,ui->spinBox_move_fl,ui->spinBox_move_rr,ui->spinBox_move_rl};
+    syncingMapSpeed=true;
+    for(int i=0;i<4;++i) spins[i]->setValue(qRound(reference*double(mapMotorCalibration[i])/peak));
+    syncingMapSpeed=false;
+    ui->routePlan->showMotorPower(spins[0]->value(),spins[1]->value(),spins[2]->value(),spins[3]->value());
+    if(reference==0) {
+        mapLimitsDirty=false;
+        if(routeActive || motionRunning || findChild<QTimer *>("pwmRefreshTimer")->isActive()) ui->pushButton_stop->click();
+    } else if(motionRunning && !stopPending && !joystickDriving) {
+        mapLimitsDirty=true;
+        if(!mapSpeedSendTimer->isActive()) mapSpeedSendTimer->start();
+    }
+    updateCommandUi();
+}
+
+void MainWindow::sendMapSpeedLimits()
+{
+    if(!mapLimitsDirty || mapLimitsPending || moveAwaitingAck || !motionRunning || stopPending) return;
+    const int values[]={ui->spinBox_move_fr->value(),ui->spinBox_move_fl->value(),ui->spinBox_move_rr->value(),ui->spinBox_move_rl->value()};
+    for(int value:values) if(value<=0) { ui->pushButton_stop->click(); return; }
+    QByteArray payload(5,'\0'); payload[0]=char(0xD5);
+    for(int i=0;i<4;++i) payload[1+i]=char(values[i]);
+    if(!sendPayload(payload)) { ui->pushButton_stop->click(); return; }
+    mapLimitsDirty=false; mapLimitsPending=true; mapSpeedAckTimer->start();
 }
 
 void MainWindow::driveJoystick(int forward,int left)

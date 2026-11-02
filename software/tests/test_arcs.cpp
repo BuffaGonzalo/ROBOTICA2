@@ -47,6 +47,13 @@ int main(int argc,char **argv) {
         editor->findChild<QDoubleSpinBox *>("setpointHeading")->setValue(30);
         editor->findChild<QDoubleSpinBox *>("setpointArcSweep")->setValue(90);
         editor->findChild<QComboBox *>("setpointArcDirection")->setCurrentIndex(1);
+        auto *sweep=editor->findChild<QDoubleSpinBox *>("setpointArcSweep");
+        check(sweep->value()==-90,"clockwise selector updates signed angle");
+        sweep->setValue(-135);
+        check(editor->findChild<QComboBox *>("setpointArcDirection")->currentIndex()==1,"typed negative angle keeps clockwise direction");
+        sweep->setValue(0);
+        check(!editor->findChild<QDialogButtonBox *>()->button(QDialogButtonBox::Ok)->isEnabled(),"zero arc angle cannot be saved");
+        sweep->setValue(-90);
         editor->grab().save("arc-editor.png"); editor->accept();
     });
     click(plan,{80,0});

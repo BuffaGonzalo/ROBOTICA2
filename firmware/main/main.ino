@@ -132,7 +132,7 @@ void loop() {
     if (status && id == ALIVE) {
       serial_alive_pending = true;
       serial_alive_status = status;
-    } else if (status && (id == SETPWM || id == MOVE || id == STOP || id == SETGAINS)) {
+    } else if (status && (id == SETPWM || id == MOVE || id == STOP || id == SETGAINS || id == SETLIMITS)) {
       serial_pwm_pending = true;
       serial_reply_id = id;
       serial_pwm_status = status;
